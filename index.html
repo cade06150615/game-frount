@@ -1,4 +1,4 @@
-              <!DOCTYPE html>
+   <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
@@ -324,7 +324,7 @@
         // 動態設置 Socket.IO URL
         const backendUrl = window.location.hostname === 'localhost' 
             ? 'http://localhost:3000' 
-            : 'https://game-backed.onrender.com';
+            : 'https://game-backed-1.onrender.com';
         console.log('連接到後端 URL:', backendUrl);
         const socket = io(backendUrl, {
             transports: ['websocket', 'polling'],
@@ -373,9 +373,9 @@
         const playerSpeed = 5;
         const bulletSpeed = 10;
         const bulletLifetime = 2000;
-        const maxBullets = 20; // 新增：限制最大子彈數量
-        const shootingCooldown = 200; // 新增：射擊冷卻時間（毫秒）
-        let lastShotTime = 0; // 新增：記錄上次射擊時間
+        const maxBullets = 20;
+        const shootingCooldown = 200;
+        let lastShotTime = 0;
         const keys = {};
         const bullets = [];
         const enemyBullets = [];
@@ -444,7 +444,6 @@
         // 創建子彈
         function createBullet(x, y, angle, isEnemy = false) {
             try {
-                // 限制子彈數量
                 if (!isEnemy && bullets.length >= maxBullets) return;
                 if (isEnemy && enemyBullets.length >= maxBullets) return;
 
@@ -521,10 +520,9 @@
         // 更新子彈
         function updateBullets(deltaTime) {
             try {
-                // 使用 deltaTime 確保平滑移動
                 for (let i = bullets.length - 1; i >= 0; i--) {
                     const bullet = bullets[i];
-                    bullet.x += bullet.velocityX * (deltaTime / 16.66); // 標準化為 60fps
+                    bullet.x += bullet.velocityX * (deltaTime / 16.66);
                     bullet.y += bullet.velocityY * (deltaTime / 16.66);
                     if (bullet.x < 0 || bullet.x > window.innerWidth || 
                         bullet.y < 0 || bullet.y > window.innerHeight ||
@@ -534,7 +532,6 @@
                         console.log(`移除子彈: x=${bullet.x}, y=${bullet.y}, 原因: 超出邊界或超時`);
                         continue;
                     }
-                    // 改進碰撞檢測
                     if (bullet.owner === socket.id && opponentId && Math.hypot(bullet.x - enemyX, bullet.y - enemyY) < 30) {
                         bullet.element.remove();
                         bullets.splice(i, 1);
@@ -723,7 +720,7 @@
             if (gameActive) {
                 try {
                     const now = Date.now();
-                    if (now - lastShotTime < shootingCooldown) return; // 射擊冷卻
+                    if (now - lastShotTime < shootingCooldown) return;
                     lastShotTime = now;
                     socket.emit('playerShoot', { x: playerX, y: playerY, angle: playerAngle });
                     shotsFired++;
