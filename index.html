@@ -324,8 +324,13 @@
         // 動態設置 Socket.IO URL
         const backendUrl = window.location.hostname === 'localhost' 
             ? 'http://localhost:3000' 
-            : 'https://your-actual-backend-url.onrender.com'; // 替換為實際的 Render URL
-        const socket = io(backendUrl);
+            : 'https://game-backed.onrender.com'; // 替換為實際的 Render URL
+        console.log('連接到後端 URL:', backendUrl);
+        const socket = io(backendUrl, {
+            transports: ['websocket', 'polling'], // 確保支援輪詢和 WebSocket
+            reconnectionAttempts: 5, // 重連次數
+            reconnectionDelay: 1000 // 重連延遲
+        });
 
         // 遊戲元素
         const gameContainer = document.getElementById('game-container');
@@ -597,8 +602,8 @@
         });
 
         socket.on('connect_error', (error) => {
-            console.error('Socket.IO 連線錯誤:', error);
-            showError('無法連接到伺服器，請稍後再試！');
+            console.error('Socket.IO 連線錯誤:', error.message);
+            showError(`無法連接到伺服器：${error.message}`);
         });
 
         socket.on('matchmakingProgress', ({ progress, timeLeft }) => {
