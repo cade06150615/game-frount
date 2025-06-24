@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+              <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
@@ -324,12 +324,12 @@
         // 動態設置 Socket.IO URL
         const backendUrl = window.location.hostname === 'localhost' 
             ? 'http://localhost:3000' 
-            : 'https://game-backed.onrender.com'; // 替換為實際的 Render URL
+            : 'https://game-backed.onrender.com';
         console.log('連接到後端 URL:', backendUrl);
         const socket = io(backendUrl, {
-            transports: ['websocket', 'polling'], // 確保支援輪詢和 WebSocket
-            reconnectionAttempts: 5, // 重連次數
-            reconnectionDelay: 1000 // 重連延遲
+            transports: ['websocket', 'polling'],
+            reconnectionAttempts: 5,
+            reconnectionDelay: 1000
         });
 
         // 遊戲元素
@@ -373,6 +373,9 @@
         const playerSpeed = 5;
         const bulletSpeed = 10;
         const bulletLifetime = 2000;
+        const maxBullets = 20; // 新增：限制最大子彈數量
+        const shootingCooldown = 200; // 新增：射擊冷卻時間（毫秒）
+        let lastShotTime = 0; // 新增：記錄上次射擊時間
         const keys = {};
         const bullets = [];
         const enemyBullets = [];
@@ -441,6 +444,10 @@
         // 創建子彈
         function createBullet(x, y, angle, isEnemy = false) {
             try {
+                // 限制子彈數量
+                if (!isEnemy && bullets.length >= maxBullets) return;
+                if (isEnemy && enemyBullets.length >= maxBullets) return;
+
                 const bullet = document.createElement('div');
                 bullet.classList.add(isEnemy ? 'enemy-bullet' : 'bullet');
                 gameContainer.appendChild(bullet);
@@ -463,6 +470,7 @@
                 }
                 bullet.style.left = `${x - 4}px`;
                 bullet.style.top = `${y - 4}px`;
+                console.log(`創建子彈: isEnemy=${isEnemy}, x=${x}, y=${y}, angle=${angle}`);
             } catch (error) {
                 console.error('創建子彈失敗:', error);
             }
@@ -511,25 +519,29 @@
         }
 
         // 更新子彈
-        function updateBullets() {
+        function updateBullets(deltaTime) {
             try {
+                // 使用 deltaTime 確保平滑移動
                 for (let i = bullets.length - 1; i >= 0; i--) {
                     const bullet = bullets[i];
-                    bullet.x += bullet.velocityX;
-                    bullet.y += bullet.velocityY;
+                    bullet.x += bullet.velocityX * (deltaTime / 16.66); // 標準化為 60fps
+                    bullet.y += bullet.velocityY * (deltaTime / 16.66);
                     if (bullet.x < 0 || bullet.x > window.innerWidth || 
                         bullet.y < 0 || bullet.y > window.innerHeight ||
                         Date.now() - bullet.createdAt > bulletLifetime) {
                         bullet.element.remove();
                         bullets.splice(i, 1);
+                        console.log(`移除子彈: x=${bullet.x}, y=${bullet.y}, 原因: 超出邊界或超時`);
                         continue;
                     }
-                    if (bullet.owner === socket.id && Math.hypot(bullet.x - enemyX, bullet.y - enemyY) < 20) {
+                    // 改進碰撞檢測
+                    if (bullet.owner === socket.id && opponentId && Math.hypot(bullet.x - enemyX, bullet.y - enemyY) < 30) {
                         bullet.element.remove();
                         bullets.splice(i, 1);
                         socket.emit('bulletHit', { targetId: opponentId, damage: 10 });
                         shotsHit++;
                         createExplosion(enemyX, enemyY, '#f87171');
+                        console.log(`子彈擊中敵人: x=${bullet.x}, y=${bullet.y}, 敵人位置: (${enemyX}, ${enemyY})`);
                         continue;
                     }
                     bullet.element.style.left = `${bullet.x - 4}px`;
@@ -537,13 +549,14 @@
                 }
                 for (let i = enemyBullets.length - 1; i >= 0; i--) {
                     const bullet = enemyBullets[i];
-                    bullet.x += bullet.velocityX;
-                    bullet.y += bullet.velocityY;
+                    bullet.x += bullet.velocityX * (deltaTime / 16.66);
+                    bullet.y += bullet.velocityY * (deltaTime / 16.66);
                     if (bullet.x < 0 || bullet.x > window.innerWidth || 
                         bullet.y < 0 || bullet.y > window.innerHeight ||
                         Date.now() - bullet.createdAt > bulletLifetime) {
                         bullet.element.remove();
                         enemyBullets.splice(i, 1);
+                        console.log(`移除敵人子彈: x=${bullet.x}, y=${bullet.y}, 原因: 超出邊界或超時`);
                         continue;
                     }
                     bullet.element.style.left = `${bullet.x - 4}px`;
@@ -709,6 +722,9 @@
         window.addEventListener('mousedown', (e) => {
             if (gameActive) {
                 try {
+                    const now = Date.now();
+                    if (now - lastShotTime < shootingCooldown) return; // 射擊冷卻
+                    lastShotTime = now;
                     socket.emit('playerShoot', { x: playerX, y: playerY, angle: playerAngle });
                     shotsFired++;
                 } catch (error) {
@@ -744,18 +760,21 @@
         });
 
         // 遊戲迴圈
-        function gameLoop() {
+        let lastTime = performance.now();
+        function gameLoop(timestamp) {
             try {
+                const deltaTime = timestamp - lastTime;
+                lastTime = timestamp;
                 if (gameActive) {
-                    if (keys['w'] || keys['ArrowUp']) playerY -= playerSpeed;
-                    if (keys['s'] || keys['ArrowDown']) playerY += playerSpeed;
-                    if (keys['a'] || keys['ArrowLeft']) playerX -= playerSpeed;
-                    if (keys['d'] || keys['ArrowRight']) playerX += playerSpeed;
+                    if (keys['w'] || keys['ArrowUp']) playerY -= playerSpeed * (deltaTime / 16.66);
+                    if (keys['s'] || keys['ArrowDown']) playerY += playerSpeed * (deltaTime / 16.66);
+                    if (keys['a'] || keys['ArrowLeft']) playerX -= playerSpeed * (deltaTime / 16.66);
+                    if (keys['d'] || keys['ArrowRight']) playerX += playerSpeed * (deltaTime / 16.66);
                     playerX = Math.max(20, Math.min(window.innerWidth - 20, playerX));
                     playerY = Math.max(20, Math.min(window.innerHeight - 20, playerY));
                     socket.emit('playerMove', { x: playerX, y: playerY, angle: playerAngle });
                     updatePositions();
-                    updateBullets();
+                    updateBullets(deltaTime);
                 }
                 requestAnimationFrame(gameLoop);
             } catch (error) {
@@ -765,7 +784,7 @@
 
         // 初始化
         createStars();
-        gameLoop();
+        requestAnimationFrame(gameLoop);
 
         // 處理窗口調整大小
         window.addEventListener('resize', () => {
