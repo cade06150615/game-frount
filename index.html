@@ -321,8 +321,11 @@
     </div>
 
     <script>
-        // 初始化 Socket.IO
-        const socket = io('https://your-render-backend-url.onrender.com'); // 替換為你的 Render 後端 URL
+        // 動態設置 Socket.IO URL
+        const backendUrl = window.location.hostname === 'localhost' 
+            ? 'http://localhost:3000' 
+            : 'https://your-actual-backend-url.onrender.com'; // 替換為實際的 Render URL
+        const socket = io(backendUrl);
 
         // 遊戲元素
         const gameContainer = document.getElementById('game-container');
@@ -589,7 +592,12 @@
         }
 
         // Socket.IO 事件
-        socket.on('connect_error', () => {
+        socket.on('connect', () => {
+            console.log('已連接到後端:', socket.id);
+        });
+
+        socket.on('connect_error', (error) => {
+            console.error('Socket.IO 連線錯誤:', error);
             showError('無法連接到伺服器，請稍後再試！');
         });
 
