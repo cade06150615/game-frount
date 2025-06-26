@@ -729,7 +729,7 @@
     </div>
 
     <script>
-        const socket = io('http://localhost:3000'); // 替換為你的後端 URL
+        const socket = io('https://game-backed-2.onrender.com');
 
         function createStars() {
             const starsLayer = document.getElementById('stars-layer');
@@ -896,6 +896,10 @@
             enemyNameDisplay.textContent = players[opponentId].name || '星際掠奪者';
             localStorage.setItem('roomId', roomId);
             animateShipEntry();
+        });
+
+        socket.on('connect_error', (error) => {
+            console.error('Socket.IO 連線錯誤:', error);
         });
 
         function initialize() {
