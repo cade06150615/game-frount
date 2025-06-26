@@ -154,7 +154,7 @@
             border: 2px solid;
             border-radius: 12px;
             overflow: hidden;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            transition: transform 0.3s ease, box-shadow 0.3s ease, opacity 0.5s ease;
             z-index: 10;
             opacity: 0;
         }
@@ -852,9 +852,10 @@
                 document.getElementById('rightThrusterBlue').classList.add('active');
                 document.getElementById('thrusterRed').classList.add('active');
                 const playerCard = document.getElementById('playerCard');
-                playerCard.classList.add('active');
                 const enemyCard = document.getElementById('enemyCard');
+                playerCard.classList.add('active');
                 enemyCard.classList.add('active');
+                console.log('玩家卡片顯示:', playerCard.classList, '敵人卡片顯示:', enemyCard.classList); // 除錯日誌
                 setTimeout(() => {
                     const flash = document.getElementById('flashEffect');
                     flash.classList.add('active');
@@ -883,6 +884,7 @@
                 localStorage.setItem('playerName', playerName);
                 nameModal.style.display = 'none';
                 socket.emit('joinMatchmaking', { name: playerName });
+                console.log('玩家名稱設置:', playerName); // 除錯日誌
             });
             nameInput.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') submitButton.click();
@@ -895,6 +897,7 @@
             const enemyNameDisplay = document.querySelector('#enemy-name');
             enemyNameDisplay.textContent = players[opponentId].name || '星際掠奪者';
             localStorage.setItem('roomId', roomId);
+            console.log('配對成功:', roomId, players); // 除錯日誌
             animateShipEntry();
         });
 
