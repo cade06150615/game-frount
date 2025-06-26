@@ -207,7 +207,7 @@
             transform: scale(0.95);
         }
 
-        @media (max-width: 768px) {
+        @media (max-width: 1024px) {
             .joystick-container, .shoot-button { display: block; }
         }
     </style>
@@ -217,7 +217,7 @@
     <div class="stars-layer" id="stars-layer"></div>
     <canvas id="gameCanvas"></canvas>
 
-    <div class="modal" id="nameModal">
+    <div class="modal" id="nameModal" style="display: none;">
         <div class="modal-content">
             <h2 class="text-2xl sm:text-3xl font-bold text-blue-400 mb-4 text-center">輸入你的名稱</h2>
             <input type="text" id="playerNameInput" class="input-field" placeholder="太空艦長" maxlength="10">
@@ -265,7 +265,7 @@
     <div class="shoot-button" id="shootButton">射擊</div>
 
     <script>
-        const socket = io('http://localhost:3000'); // 替換為你的後端 URL
+        const socket = io('https://game-backed-2.onrender.com');
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const nameModal = document.getElementById('nameModal');
@@ -288,10 +288,9 @@
         const joystickStick = document.getElementById('joystickStick');
         const shootButton = document.getElementById('shootButton');
 
-        // 遊戲變數
-        let playerName = localStorage.getItem('playerName') || 'player';
+        let playerName = localStorage.getItem('playerName') || '太空艦長';
         let enemyName = '';
-        let roomId = null;
+        let roomId = localStorage.getItem('roomId');
         let opponentId = null;
         let gameActive = false;
         let playerX = 100;
@@ -318,16 +317,18 @@
         let joystickDeltaY = 0;
         let aimX = window.innerWidth / 2;
         let aimY = window.innerHeight / 2;
+        let isShooting = false;
 
-        // 設置畫布大小
         function resizeCanvas() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
+            playerY = canvas.height / 2;
+            enemyX = canvas.width - 100;
+            enemyY = canvas.height / 2;
         }
         resizeCanvas();
         window.addEventListener('resize', resizeCanvas);
 
-        // 創建星空背景
         function createStars() {
             const starsLayer = document.getElementById('stars-layer');
             for (let i = 0; i < 150; i++) {
@@ -348,11 +349,10 @@
             }
         }
 
-        // 繪製飛船
         function drawSpaceship(x, y, angle, color) {
             ctx.save();
             ctx.translate(x, y);
-            ctx.rotate(angle * Math.PI / 180);
+            ctx.rotate((angle * Math.PI) / 180);
             ctx.beginPath();
             ctx.moveTo(0, -15);
             ctx.lineTo(12, 15);
@@ -365,7 +365,6 @@
             ctx.restore();
         }
 
-        // 繪製子彈
         function drawBullet(x, y) {
             ctx.beginPath();
             ctx.arc(x, y, 3, 0, Math.PI * 2);
@@ -373,31 +372,23 @@
             ctx.fill();
         }
 
-        // 遊戲更新
         function updateGame() {
             if (!gameActive) return;
 
-            // 清空畫布
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // 繪製玩家飛船
             drawSpaceship(playerX, playerY, playerAngle, '#1E40AF');
-
-            // 繪製敵人飛船
             drawSpaceship(enemyX, enemyY, enemyAngle, '#991B1B');
 
-            // 繪製子彈
             bullets.forEach(bullet => {
                 drawBullet(bullet.x, bullet.y);
             });
 
-            // 鍵盤移動
             if (keys['w'] || keys['ArrowUp']) playerY -= playerSpeed;
             if (keys['s'] || keys['ArrowDown']) playerY += playerSpeed;
             if (keys['a'] || keys['ArrowLeft']) playerX -= playerSpeed;
             if (keys['d'] || keys['ArrowRight']) playerX += playerSpeed;
 
-            // 搖桿移動
             if (joystickActive) {
                 const magnitude = Math.sqrt(joystickDeltaX ** 2 + joystickDeltaY ** 2);
                 const maxDistance = 50;
@@ -409,12 +400,42 @@
                 }
             }
 
-            // 限制玩家移動範圍
             playerX = Math.max(0, Math.min(playerX, canvas.width));
             playerY = Math.max(0, Math.min(playerY, canvas.height));
 
-            // 更新玩家角度（指向滑鼠或觸控點）
             playerAngle = Math.atan2(aimY - playerY, aimX - playerX) * 180 / Math.PI;
 
-            // 發送玩家移動數據
-            socket.emit('
+            if (isShooting && Date.now() - lastShotTime > shootingCooldown) {
+                socket.emit('playerShoot', {
+                    x: playerX,
+                    y: playerY,
+                    angle: playerAngle
+                });
+                lastShotTime = Date.now();
+            }
+
+            socket.emit('playerMove', {
+                x: playerX,
+                y: playerY,
+                angle: playerAngle,
+                name: playerName
+            });
+        }
+
+        function handleJoystick(event) {
+            event.preventDefault();
+            const touch = event.type === 'touchstart' || event.type === 'touchmove' ? event.touches[0] : null;
+            if (!touch) return;
+
+            const rect = joystick.getBoundingClientRect();
+            if (event.type === 'touchstart') {
+                joystickActive = true;
+                joystickStartX = touch.clientX;
+                joystickStartY = touch.clientY;
+            }
+
+            joystickDeltaX = touch.clientX - joystickStartX;
+            joystickDeltaY = touch.clientY - joystickStartY;
+
+            const maxDistance = 50;
+            const magnitude = Math.sqrt(joystickDeltaX ** 2 + joystickDeltaY ** 2);
