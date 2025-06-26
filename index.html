@@ -1,32 +1,212 @@
-const express = require('express');
-const http = require('http');
-const socketIO = require('socket.io');
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>太空射擊遊戲</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
 
-const app = express();
-const server = http.createServer(app);
-const io = socketIO(server, {
-    cors: {
-        origin: '*',
-        methods: ['GET', 'POST']
-    }
-});
+        body {
+            font-family: 'Orbitron', sans-serif;
+            background-color: #0a0a1a;
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+            overscroll-behavior: none;
+        }
 
-const PORT = process.env.PORT || 3000;
+        .space-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at center, #1a2a4a 0%, #0a0a1a 100%);
+            z-index: -10;
+        }
 
-// 存儲匹配中的玩家和遊戲房間
-const matchmakingQueue = [];
-const rooms = {};
+        .stars-layer {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            z-index: -5;
+        }
 
-// 碰撞檢測函數
-function checkCollision(bullet, player) {
-    const dx = bullet.x - player.x;
-    const dy = bullet.y - player.y;
-    const distance = Math.sqrt(dx * dx + dy * dy);
-    return distance < 30; // 假設飛船半徑約為 30
-}
+        .star {
+            position: absolute;
+            background-color: white;
+            border-radius: 50%;
+            animation: twinkle var(--duration) infinite ease-in-out;
+        }
 
-io.on('connection', (socket) => {
-    console.log(`玩家連線: ${socket.id}`);
+        @keyframes twinkle {
+            0%, 100% { opacity: var(--min-opacity); }
+            50% { opacity: var(--max-opacity); }
+        }
 
-    // 玩家加入匹配
-    socket.on('joinMatchmaking', (data) =>
+        .meteor {
+            position: absolute;
+            background: linear-gradient(to bottom right, #ffffff, transparent);
+            transform: rotate(45deg);
+            animation: meteorFall var(--duration) linear infinite;
+        }
+
+        @keyframes meteorFall {
+            0% { transform: translate(0, 0) rotate(45deg); }
+            100% { transform: translate(var(--x-end), var(--y-end)) rotate(45deg); }
+        }
+
+        .button-glow {
+            background: linear-gradient(to right, #3B82F6, #1D4ED8);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .button-glow:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+        }
+
+        .button-glow::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.2) 50%, rgba(255, 255, 255, 0) 100%);
+            transform: rotate(45deg);
+            animation: buttonGlare 3s infinite linear;
+        }
+
+        @keyframes buttonGlare {
+            0% { transform: rotate(45deg) translateX(-100%); }
+            100% { transform: rotate(45deg) translateX(100%); }
+        }
+
+        .modal {
+            background: linear-gradient(135deg, #1a2a4a, #0f172a);
+            border: 2px solid #3B82F6;
+            box-shadow: 0 0 30px rgba(59, 130, 246, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <div class="space-background"></div>
+    <div class="stars-layer" id="stars-layer-1"></div>
+    <div class="stars-layer" id="stars-layer-2"></div>
+    <div class="stars-layer" id="stars-layer-3"></div>
+    <div id="meteors"></div>
+
+    <div class="relative min-h-screen flex flex-col items-center justify-center px-4 sm:px-6 md:px-8">
+        <h1 class="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-8 sm:mb-10 text-shadow-[0_0_20px_rgba(255,255,255,0.8)]">
+            太空射擊對決
+        </h1>
+        <div class="flex flex-col gap-4 w-full max-w-xs sm:max-w-sm">
+            <button id="startGame" class="button-glow text-white font-bold py-3 px-6 rounded-lg text-lg sm:text-xl">
+                開始遊戲
+            </button>
+            <button id="showInstructions" class="bg-gray-700 text-white font-bold py-3 px-6 rounded-lg text-lg sm:text-xl hover:bg-gray-600">
+                遊戲說明
+            </button>
+        </div>
+    </div>
+
+    <div id="instructionsModal" class="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 hidden">
+        <div class="modal rounded-lg p-6 sm:p-8 max-w-md w-full mx-4 relative">
+            <button id="closeInstructions" class="absolute top-2 right-2 text-white text-2xl">×</button>
+            <h2 class="text-2xl sm:text-3xl font-bold text-blue-400 mb-4">遊戲說明</h2>
+            <div class="text-blue-100 space-y-4 text-sm sm:text-base">
+                <p>歡迎體驗太空射擊對決！</p>
+                <ul class="list-disc list-inside">
+                    <li>平板：使用虛擬搖桿移動，點擊射擊按鈕</li>
+                    <li>鍵盤：WASD 或方向鍵控制飛船移動</li>
+                    <li>滑鼠：移動控制瞄準，左鍵射擊</li>
+                    <li>擊敗對手，獲得最高分數！</li>
+                    <li>注意血量，保護你的飛船！</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function createStars() {
+            const starsLayer1 = document.getElementById('stars-layer-1');
+            const starsLayer2 = document.getElementById('stars-layer-2');
+            const starsLayer3 = document.getElementById('stars-layer-3');
+
+            createStarLayer(starsLayer1, 200, 0.5, 1.5, 0.1, 0.4, 3, 8);
+            createStarLayer(starsLayer2, 100, 1, 2.5, 0.2, 0.6, 2, 6);
+            createStarLayer(starsLayer3, 50, 2, 3.5, 0.3, 1, 1, 4);
+        }
+
+        function createStarLayer(container, count, minSize, maxSize, minOpacity, maxOpacity, minDuration, maxDuration) {
+            for (let i = 0; i < count; i++) {
+                const star = document.createElement('div');
+                star.classList.add('star');
+                const x = Math.random() * 100;
+                const y = Math.random() * 100;
+                const size = minSize + Math.random() * (maxSize - minSize);
+                const duration = minDuration + Math.random() * (maxDuration - minDuration);
+                star.style.left = `${x}%`;
+                star.style.top = `${y}%`;
+                star.style.width = `${size}px`;
+                star.style.height = `${size}px`;
+                star.style.setProperty('--duration', `${duration}s`);
+                star.style.setProperty('--min-opacity', minOpacity);
+                star.style.setProperty('--max-opacity', maxOpacity);
+                container.appendChild(star);
+            }
+        }
+
+        function createMeteors() {
+            const meteorsContainer = document.getElementById('meteors');
+            const meteorCount = 2;
+            for (let i = 0; i < meteorCount; i++) {
+                const meteor = document.createElement('div');
+                meteor.classList.add('meteor');
+                const startX = Math.random() * 100;
+                const startY = Math.random() * 100;
+                const size = 15 + Math.random() * 20;
+                const duration = 10 + Math.random() * 15;
+                const xEnd = startX + (Math.random() - 0.5) * 150;
+                const yEnd = startY + (Math.random() - 0.5) * 150;
+                meteor.style.left = `${startX}%`;
+                meteor.style.top = `${startY}%`;
+                meteor.style.width = `${size}px`;
+                meteor.style.height = `${size}px`;
+                meteor.style.setProperty('--duration', `${duration}s`);
+                meteor.style.setProperty('--x-end', `${xEnd}%`);
+                meteor.style.setProperty('--y-end', `${yEnd}%`);
+                meteorsContainer.appendChild(meteor);
+            }
+        }
+
+        function initializeSpace() {
+            createStars();
+            createMeteors();
+        }
+
+        initializeSpace();
+
+        document.getElementById('startGame').addEventListener('click', function() {
+            document.body.style.transition = 'opacity 0.5s';
+            document.body.style.opacity = '0';
+            setTimeout(() => {
+                window.location.href = 'versus.html';
+            }, 500);
+        });
+
+        document.getElementById('showInstructions').addEventListener('click', function() {
+            document.getElementById('instructionsModal').classList.remove('hidden');
+        });
+
+        document.getElementById('closeInstructions').addEventListener('click', function() {
+            document.getElementById('instructionsModal').classList.add('hidden');
+        });
+    </script>
+</body>
+</html>
