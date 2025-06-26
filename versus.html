@@ -15,6 +15,7 @@
             overflow: hidden;
             margin: 0;
             padding: 0;
+            overscroll-behavior: none;
             transition: opacity 0.5s;
         }
         
@@ -49,16 +50,16 @@
         .nebula {
             position: absolute;
             border-radius: 50%;
-            filter: blur(60px);
+            filter: blur(40px);
             opacity: 0.2;
             z-index: -4;
             mix-blend-mode: screen;
-            animation: nebulaFloat 30s infinite alternate ease-in-out;
+            animation: nebulaFloat 20s infinite alternate ease-in-out;
         }
         
         @keyframes nebulaFloat {
             0% { transform: translate(0, 0) scale(1); }
-            100% { transform: translate(var(--x, 5%), var(--y, 5%)) scale(1.1); }
+            100% { transform: translate(var(--x, 5%), var(--y, 5%)) scale(1.05); }
         }
         
         .wormhole {
@@ -81,7 +82,7 @@
             );
             z-index: -5;
             opacity: 0.3;
-            animation: wormholeRotate 60s linear infinite;
+            animation: wormholeRotate 40s linear infinite;
         }
         
         @keyframes wormholeRotate {
@@ -91,8 +92,8 @@
         
         .vs-container {
             position: relative;
-            width: 200px;
-            height: 200px;
+            width: 120px;
+            height: 120px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -107,108 +108,95 @@
         }
         
         .vs-text {
-            font-size: 5rem;
+            font-size: 3rem;
             font-weight: 900;
             color: white;
-            text-shadow: 0 0 15px rgba(255, 255, 255, 0.6);
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.6);
             z-index: 2;
-            animation: vsGlow 3s infinite alternate;
+            animation: vsGlow 2s infinite alternate;
         }
         
         @keyframes vsGlow {
-            0% {
-                text-shadow: 0 0 15px rgba(255, 255, 255, 0.6);
-                transform: scale(1);
-            }
-            100% {
-                text-shadow: 0 0 25px rgba(255, 255, 255, 0.8),
-                             0 0 40px rgba(96, 165, 250, 0.5),
-                             0 0 60px rgba(239, 68, 68, 0.3);
-                transform: scale(1.05);
-            }
+            0% { text-shadow: 0 0 10px rgba(255, 255, 255, 0.6); transform: scale(1); }
+            100% { text-shadow: 0 0 15px rgba(255, 255, 255, 0.8), 0 0 20px rgba(96, 165, 250, 0.5); transform: scale(1.05); }
         }
         
         .vs-ring {
             position: absolute;
             border-radius: 50%;
             border: 2px solid rgba(255, 255, 255, 0.2);
-            animation: vsRingExpand 4s infinite;
+            animation: vsRingExpand 3s infinite;
         }
         
         @keyframes vsRingExpand {
-            0% {
-                width: 60px;
-                height: 60px;
-                opacity: 0.6;
-            }
-            100% {
-                width: 200px;
-                height: 200px;
-                opacity: 0;
-            }
+            0% { width: 40px; height: 40px; opacity: 0.6; }
+            100% { width: 120px; height: 120px; opacity: 0; }
         }
         
         .energy-field {
             position: absolute;
-            width: 300px;
-            height: 300px;
+            width: 200px;
+            height: 200px;
             border-radius: 50%;
             background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
-            animation: energyPulse 4s infinite alternate;
+            animation: energyPulse 3s infinite alternate;
         }
         
         @keyframes energyPulse {
-             0% { transform: scale(0.9); opacity: 100% }
-            100% { transform: scale(1.1); opacity: 0.2 }
+            0% { transform: scale(0.9); opacity: 0.3; }
+            100% { transform: scale(1.1); opacity: 0.15; }
         }
         
         .player-card {
             position: relative;
-            width: 320px;
-            height: 450px;
+            width: 240px;
+            height: 340px;
             border: 2px solid;
-            border-radius: 15px;
+            border-radius: 12px;
             overflow: hidden;
             transition: transform 0.3s ease, box-shadow 0.3s ease;
             z-index: 10;
             opacity: 0;
         }
         
+        @media (max-width: 768px) {
+            .player-card { width: 180px; height: 260px; }
+        }
+        
         .player-card:hover {
-            transform: translateY(-8px);
+            transform: translateY(-6px);
         }
         
         .player-blue {
             border-color: #3B82F6;
-            box-shadow: 0 0 25px rgba(59, 130, 246, 0.5);
-            transform: translateX(-200%);
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+            transform: translateX(-150%);
         }
         
         .player-blue.active {
             transform: translateX(0);
             opacity: 1;
-            transition: transform 1s cubic-bezier(0.22, 0.61, 0.36, 1), opacity 0.5s ease;
+            transition: transform 0.8s cubic-bezier(0.22, 0.61, 0.36, 1), opacity 0.5s ease;
         }
         
         .player-blue:hover {
-            box-shadow: 0 0 40px rgba(59, 130, 246, 0.7);
+            box-shadow: 0 0 30px rgba(59, 130, 246, 0.7);
         }
         
         .player-red {
             border-color: #EF4444;
-            box-shadow: 0 0 25px rgba(239, 68, 68, 0.5);
-            transform: translateX(200%);
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.5);
+            transform: translateX(150%);
         }
         
         .player-red.active {
             transform: translateX(0);
             opacity: 1;
-            transition: transform 1s cubic-bezier(0.22, 0.61, 0.36, 1);
-            opacity: 0.5s ease;
+            transition: transform 0.8s cubic-bezier(0.22, 0.61, 0.36, 1), opacity 0.5s ease;
         }
         
         .player-red:hover {
-            box-shadow: 0 0 40px rgba(239, 68, 68, 0.7);
+            box-shadow: 0 0 30px rgba(239, 68, 68, 0.7);
         }
         
         .player-image {
@@ -222,7 +210,7 @@
         }
         
         .player-info {
-            padding: 1rem;
+            padding: 0.75rem;
             height: 15%;
             display: flex;
             flex-direction: column;
@@ -231,10 +219,14 @@
         }
         
         .player-name {
-            font-size: 1.5rem;
+            font-size: 1.25rem;
             font-weight: 700;
             text-align: center;
             letter-spacing: 1px;
+        }
+        
+        @media (max-width: 768px) {
+            .player-name { font-size: 1rem; }
         }
         
         .holographic-overlay {
@@ -265,53 +257,43 @@
                 rgba(255, 255, 255, 0.05) 50%,
                 rgba(255, 255, 255, 0) 100%
             );
-            animation: holographicGlare 8s infinite linear;
+            animation: holographicGlare 6s infinite linear;
             pointer-events: none;
             z-index: 6;
         }
         
         @keyframes holographicGlare {
-            0% { transform: rotate(0deg) translate(-50%, -50%);
- }
-            100% { transform: rotate(360deg) translate(-50%, -50%);
- }
+            0% { transform: rotate(0deg) translate(-50%, -50%); }
+            100% { transform: rotate(360deg) translate(-50%, -50%); }
         }
         
         .countdown {
             position: absolute;
-            bottom: 50px;
+            bottom: 10%;
             left: 50%;
             transform: translateX(-50%);
-            font-size: 4rem;
+            font-size: 3rem;
             font-weight: 900;
-            color: countdownFade 1s ease-in-out forwards;
-            text-shadow: 0 0 20px rgba(255, 255, 255, 0.8);
+            color: white;
+            text-shadow: 0 0 15px rgba(255, 255, 255, 0.8);
             opacity: 0;
-            animation: 0;
+            animation: countdownFade 1s ease-in-out forwards;
+        }
+        
+        @media (max-width: 768px) {
+            .countdown { font-size: 2rem; bottom: 5%; }
         }
         
         @keyframes countdownFade {
-            0% {
-                opacity: 0;
-                transform: translate(-50%, 20px) scale(0.8);
-            }
-            20% {
-                opacity: 1;
-                transform: translate(-50%, 0) scale(1);
-            }
-            80% {
-                opacity: 1;
-                transform: translate(-50%, 0) scale(1);
-            }
-            100% {
-                opacity: 0;
-                transform: translate(-50%, -20px) scale(0.8);
-            }
+            0% { opacity: 0; transform: translate(-50%, 20px) scale(0.8); }
+            20% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+            80% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+            100% { opacity: 0; transform: translate(-50%, -20px) scale(0.8); }
         }
         
         .spaceship {
-            filter: drop-shadow(0 0 10px var(--glow-color));
-            animation: floatShip 6s ease-in-out infinite);
+            filter: drop-shadow(0 0 8px var(--glow-color));
+            animation: floatShip 5s ease-in-out infinite;
             transform-origin: center;
             z-index: 2;
         }
@@ -321,38 +303,27 @@
         }
         
         .spaceship-red {
-            --glow-red: rgba(239, 68, 68, 0.7);
+            --glow-color: rgba(239, 68, 68, 0.7);
             --rotate: 2deg;
         }
         
         @keyframes floatShip {
-            0% 100%, 
-0 {
-                transform: translateY(0) rotate(0deg);
-            }
-            50% {
-                transform: translateY(-10px) rotate(var(--rotate, 0deg));
-            }
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-8px) rotate(var(--rotate, 0deg)); }
         }
         
         .engine-glow {
             position: absolute;
             border-radius: 50%;
-            filter: blur(8px);
-            opacity: 0.8;
-            animation: enginePulse 2s infinite alternate;
+            filter: blur(6px);
+            opacity: 0.7;
+            animation: enginePulse 1.5s infinite alternate;
             z-index: 1;
         }
         
         @keyframes enginePulse {
-            0% {
-                opacity: 0.6;
-                transform: scale(0.9);
-            }
-            100% {
-                opacity: 0.9;
-                transform: scale(1.2);
-            }
+            0% { transform: scale(0.9); opacity: 0.5; }
+            100% { transform: scale(1.1); opacity: 0.8; }
         }
         
         .tech-grid {
@@ -362,7 +333,7 @@
             background-image: 
                 linear-gradient(to right, rgba(var(--grid-color), 0.1) 1px, transparent 1px),
                 linear-gradient(to bottom, rgba(var(--grid-color), 0.1) 1px, transparent 1px);
-            background-size: 20px 20px;
+            background-size: 15px 15px;
             z-index: 1;
         }
         
@@ -370,7 +341,7 @@
             position: absolute;
             height: 2px;
             background: linear-gradient(to right, transparent, var(--beam-color), transparent);
-            opacity: 0.7;
+            opacity: 0.6;
             animation: beamMove var(--duration) infinite linear;
             z-index: 1;
         }
@@ -384,13 +355,13 @@
             position: absolute;
             border-radius: 50%;
             border: 2px solid;
-            opacity: 0.3;
-            animation: shieldPulse 3s infinite alternate;
+            opacity: 0.25;
+            animation: shieldPulse 2.5s infinite alternate;
         }
         
         @keyframes shieldPulse {
             0% { transform: scale(0.95); opacity: 0.2; }
-            100% { transform: scale(1); opacity: 0.4; }
+            100% { transform: scale(1); opacity: 0.35; }
         }
         
         .name-modal {
@@ -407,13 +378,13 @@
         }
         
         .name-modal-content {
-            background: linear-gradient(135deg, #1a2a4a 0%, #0f172a 100%);
+            background: linear-gradient(135deg, #1a2a4a, #0f172a);
             border: 2px solid #3B82F6;
-            border-radius: 15px;
-            padding: 2.5rem;
+            border-radius: 12px;
+            padding: 2rem;
             width: 90%;
-            max-width: 450px;
-            box-shadow: 0 0 30px rgba(59, 130, 246, 0.5);
+            max-width: 400px;
+            box-shadow: 0 0 25px rgba(59, 130, 246, 0.5);
             position: relative;
             overflow: hidden;
         }
@@ -427,26 +398,26 @@
             background-image: 
                 linear-gradient(to right, rgba(59, 130, 246, 0.1) 1px, transparent 1px),
                 linear-gradient(to bottom, rgba(59, 130, 246, 0.1) 1px, transparent 1px);
-            background-size: 20px 20px;
+            background-size: 15px 15px;
             z-index: -1;
         }
         
         .name-input {
             width: 100%;
             padding: 0.75rem;
-            margin: 1.5rem 0;
+            margin: 1rem 0;
             background-color: rgba(0, 0, 0, 0.3);
             border: 1px solid rgba(59, 130, 246, 0.5);
             border-radius: 8px;
             color: white;
             font-family: 'Orbitron', sans-serif;
-            font-size: 1.25rem;
+            font-size: 1rem;
         }
         
         .name-input:focus {
             outline: none;
             border-color: #3B82F6;
-            box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+            box-shadow: 0 0 12px rgba(59, 130, 246, 0.5);
         }
         
         .submit-btn {
@@ -454,10 +425,10 @@
             color: white;
             border: none;
             border-radius: 8px;
-            padding: 0.75rem 2rem;
+            padding: 0.75rem 1.5rem;
             font-family: 'Orbitron', sans-serif;
             font-weight: 700;
-            font-size: 1.1rem;
+            font-size: 1rem;
             cursor: pointer;
             transition: all 0.3s ease;
             position: relative;
@@ -467,7 +438,7 @@
         .submit-btn:hover {
             background: linear-gradient(to right, #2563EB, #1E40AF);
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(37, 99, 235, 0.4);
+            box-shadow: 0 5px 12px rgba(37, 99, 235, 0.4);
         }
         
         .submit-btn::after {
@@ -484,7 +455,7 @@
                 rgba(255, 255, 255, 0) 100%
             );
             transform: rotate(45deg);
-            animation: buttonGlare 3s infinite linear;
+            animation: buttonGlare 2s infinite linear;
         }
         
         @keyframes buttonGlare {
@@ -519,8 +490,8 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%) scale(0);
-            width: 10px;
-            height: 10px;
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
             background: transparent;
             border: 2px solid white;
@@ -529,18 +500,12 @@
         }
         
         .shockwave.active {
-            animation: shockwaveExpand 1s forwards;
+            animation: shockwaveExpand 0.8s forwards;
         }
         
         @keyframes shockwaveExpand {
-            0% {
-                transform: translate(-50%, -50%) scale(0);
-                opacity: 0.8;
-            }
-            100% {
-                transform: translate(-50%, -50%) scale(20);
-                opacity: 0;
-            }
+            0% { transform: translate(-50%, -50%) scale(0); opacity: 0.7; }
+            100% { transform: translate(-50%, -50%) scale(15); opacity: 0; }
         }
         
         .flash {
@@ -556,13 +521,13 @@
         }
         
         .flash.active {
-            animation: flashEffect 0.5s forwards;
+            animation: flashEffect 0.4s forwards;
         }
         
         @keyframes flashEffect {
             0% { opacity: 0; }
-            10% { opacity: 0.7; }
-            100% { opacity:0; }
+            10% { opacity: 0.6; }
+            100% { opacity: 0; }
         }
         
         .particles-container {
@@ -577,8 +542,8 @@
         
         .particle {
             position: absolute;
-            width: 3px;
-            height: 3px;
+            width: 2px;
+            height: 2px;
             background-color: white;
             border-radius: 50%;
             opacity: 0;
@@ -600,14 +565,8 @@
         }
         
         @keyframes thrusterFlame {
-            0% {
-                transform: scaleY(0.8) scaleX(0.9);
-                opacity: 0.7;
-            }
-            100% {
-                transform: scaleY(1); scaleX(1);
-                opacity: 0.9;
-            }
+            0% { transform: scaleY(0.8) scaleX(0.9); opacity: 0.7; }
+            100% { transform: scaleY(1) scaleX(1); opacity: 0.9; }
         }
         
         .matching-text {
@@ -615,35 +574,27 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            font-size: 3rem;
+            font-size: 2rem;
             font-weight: 900;
             color: white;
-            text-shadow: 0 0 20px rgba(255, 255, 255, 0.8);
+            text-shadow: 0 0 15px rgba(255, 255, 255, 0.8);
             opacity: 0;
             z-index: 100;
         }
         
+        @media (max-width: 768px) {
+            .matching-text { font-size: 1.5rem; }
+        }
+        
         .matching-text.active {
-            animation: matchingTextAnim 2s forwards;
+            animation: matchingTextAnim 1.5s forwards;
         }
         
         @keyframes matchingTextAnim {
-            0% {
-                opacity: 0;
-                transform: translate(-50%, -50%) scale(0.5);
-            }
-            20% {
-                opacity: 1;
-                transform: translate(-50%, -50%) scale(1.1);
-            }
-            80% {
-                opacity: 1;
-                transform: translate(-50%, -50%) scale(1);
-            }
-            100% {
-                opacity: 0;
-                transform: translate(-50%, -50%) scale(1.2);
-            }
+            0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+            20% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+            80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(1.2); }
         }
     </style>
 </head>
@@ -651,26 +602,23 @@
     <div class="space-background"></div>
     <div class="wormhole"></div>
     <div class="stars-layer" id="stars-layer"></div>
-    <div class="nebula" style="width: 800px; height: 800px; background: radial-gradient(circle, #4c1d95 0%, transparent 70%); top: -200px; right: -200px; --x: -8%; --y: 5%;"></div>
-    <div class="nebula" style="width: 700px; height: 700px; background: radial-gradient(circle, #1e40af 0%, transparent 70%); bottom: -200px; left: -200px; --x: 8%; --y: -5%;"></div>
-    <div class="nebula" style="width: 600px; height: 600px; background: radial-gradient(circle, #991b1b 0%, transparent 70%); top: 50%; left: -300px; --x: 10%; --y: 3%;"></div>
-    <div class="nebula" style="width: 500px; height: 500px; background: radial-gradient(circle, #0369a1 0%, transparent 70%); bottom: 10%; right: -200px; --x: -5%; --y: -8%;"></div>
+    <div class="nebula" style="width: 600px; height: 600px; background: radial-gradient(circle, #4c1d95 0%, transparent 70%); top: -150px; right: -150px; --x: -8%; --y: 5%;"></div>
+    <div class="nebula" style="width: 500px; height: 500px; background: radial-gradient(circle, #1e40af 0%, transparent 70%); bottom: -150px; left: -150px; --x: 8%; --y: -5%;"></div>
     <div class="speed-lines" id="speedLines"></div>
     <div class="particles-container" id="particlesContainer"></div>
     <div class="flash" id="flashEffect"></div>
     <div class="shockwave" id="shockwave"></div>
     <div class="matching-text" id="matchingText">對手配對中...</div>
 
-    <div class="relative min-h-screen flex flex-col items-center justify-center px-4">
-        <div class="flex items-center justify-center gap-4 md:gap-20 z-10">
+    <div class="relative min-h-screen flex flex-col items-center justify-center px-4 sm:px-6">
+        <div class="flex items-center justify-center gap-2 sm:gap-4 md:gap-10 z-10">
             <div class="player-card player-blue" id="playerCard">
                 <div class="player-image" style="background: linear-gradient(to bottom, #0f172a, #1e3a8a);">
                     <div class="tech-grid" style="--grid-color: 59, 130, 246"></div>
-                    <div class="shield" style="width: 280px; height: 280px; border-color: rgba(59, 130, 246, 0.5);"></div>
-                    <div class="energy-beam" style="width: 100px; top: 30%; left: 10%; --beam-color: #60A5FA; --duration: 2s;"></div>
-                    <div class="energy-beam" style="width: 150px; top: 60%; left: 20%; --beam-color: #60A5FA; --duration: 3s;"></div>
-                    <div class="energy-beam" style="width: 80px; top: 80%; left: 15%; --beam-color: #60A5FA; --duration: 2.5s;"></div>
-                    <svg class="spaceship spaceship-blue" width="240" height="240" viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg">
+                    <div class="shield" style="width: 200px; height: 200px; border-color: rgba(59, 130, 246, 0.5);"></div>
+                    <div class="energy-beam" style="width: 80px; top: 30%; left: 10%; --beam-color: #60A5FA; --duration: 2s;"></div>
+                    <div class="energy-beam" style="width: 120px; top: 60%; left: 20%; --beam-color: #60A5FA; --duration: 2.5s;"></div>
+                    <svg class="spaceship spaceship-blue" width="180" height="180" viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg">
                         <path d="M120 20 L160 70 L140 160 L100 160 L80 70 Z" fill="#1E40AF" stroke="#FFFFFF" stroke-width="1.5"/>
                         <ellipse cx="120" cy="60" rx="20" ry="15" fill="#60A5FA" stroke="#FFFFFF" stroke-width="1"/>
                         <ellipse cx="120" cy="60" rx="14" ry="10" fill="#DBEAFE" stroke="#FFFFFF" stroke-width="0.5"/>
@@ -701,10 +649,10 @@
                         <path d="M70 110 L90 110" stroke="#DBEAFE" stroke-width="1" stroke-dasharray="2,2"/>
                         <path d="M150 110 L170 110" stroke="#DBEAFE" stroke-width="1" stroke-dasharray="2,2"/>
                     </svg>
-                    <div class="engine-glow" style="width: 15px; height: 15px; background-color: #60A5FA; bottom: 40px; left: 111px;"></div>
-                    <div class="engine-glow" style="width: 15px; health: 15px; background-color: #60A5FA; bottom: 40px; left: 131px;"></div>
-                    <div class="thruster-flame" id="leftThrusterBlue" style="border-left: 10px solid transparent; border-right: 10px solid transparent; border-top: 30px solid #60A5FA; bottom: 10px; left: 106px;"></div>
-                    <div class="thruster-flame" id="rightThrusterBlue" style="border-left: 10px solid transparent; border-right: 10px solid transparent; border-top: 30px solid #60A5FA; bottom: 10px; left: 126px;"></div>
+                    <div class="engine-glow" style="width: 12px; height: 12px; background-color: #60A5FA; bottom: 30px; left: 111px;"></div>
+                    <div class="engine-glow" style="width: 12px; height: 12px; background-color: #60A5FA; bottom: 30px; left: 131px;"></div>
+                    <div class="thruster-flame" id="leftThrusterBlue" style="border-left: 8px solid transparent; border-right: 8px solid transparent; border-top: 20px solid #60A5FA; bottom: 8px; left: 106px;"></div>
+                    <div class="thruster-flame" id="rightThrusterBlue" style="border-left: 8px solid transparent; border-right: 8px solid transparent; border-top: 20px solid #60A5FA; bottom: 8px; left: 126px;"></div>
                     <div class="holographic-overlay"></div>
                     <div class="holographic-glare"></div>
                 </div>
@@ -715,31 +663,30 @@
             <div class="vs-container" id="vsContainer">
                 <div class="energy-field"></div>
                 <div class="vs-ring"></div>
-                <div class="vs-ring" style="animation-delay: 1.5s;"></div>
+                <div class="vs-ring" style="animation-delay: 1s;"></div>
                 <div class="vs-text">VS</div>
             </div>
             <div class="player-card player-red" id="enemyCard">
                 <div class="player-image" style="background: linear-gradient(to bottom, #1f1212, #991b1b);">
                     <div class="tech-grid" style="--grid-color: 239, 68, 68"></div>
-                    <div class="shield" style="width: 280px; height: 280px; border-color: rgba(239, 68, 68, 0.5);"></div>
-                    <div class="energy-beam" style="width: 120px; top: 40%; right: 10%; --beam-color: #F87171; --duration: 2.2s;"></div>
-                    <div class="energy-beam" style="width: 170px; top: 70%; right: 20%; --beam-color: #F87171; --duration: 3.2s;"></div>
-                    <div class="energy-beam" style="width: 90px; top: 20%; right: 15%; --beam-color: #F87171; --duration: 2.7s;"></div>
-                    <svg class="spaceship spaceship-red" width="240" height="240" viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg" style="--rotate: 2deg;">
+                    <div class="shield" style="width: 200px; height: 200px; border-color: rgba(239, 68, 68, 0.5);"></div>
+                    <div class="energy-beam" style="width: 100px; top: 40%; right: 10%; --beam-color: #F87171; --duration: 2.2s;"></div>
+                    <div class="energy-beam" style="width: 120px; top: 70%; right: 20%; --beam-color: #F87171; --duration: 2.5s;"></div>
+                    <svg class="spaceship spaceship-red" width="180" height="180" viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg" style="--rotate: 2deg;">
                         <path d="M70 40 L170 40 L190 100 L120 170 L50 100 Z" fill="#991B1B" stroke="#FFFFFF" stroke-width="1.5"/>
                         <path d="M90 40 L150 40 L150 70 L120 90 L90 70 Z" fill="#F87171" stroke="#FFFFFF" stroke-width="1"/>
                         <ellipse cx="120" cy="60" rx="15" ry="18" fill="#FECACA" stroke="#FFFFFF" stroke-width="0.5"/>
                         <path d="M110 55 L130 55" stroke="#991B1B" stroke-width="1"/>
                         <path d="M110 60 L130 60" stroke="#991B1B" stroke-width="1"/>
                         <path d="M110 65 L130 65" stroke="#991B1B" stroke-width="1"/>
-                        <path d="M60 70 L20 70 L50 100" fill="#991B1B" stroke="#FFFFFF" stroke-width="1.5"/>
-                        <path d="M180 70 L220 70 L190 100" fill="#991B1B" stroke="#FFFFFF" stroke-width="1.5"/>
-                        <circle cx="40" cy="70" r="8" fill="#F87171" stroke="#FFFFFF" stroke-width="0.5"/>
-                        <circle cx="200" cy="70" r="8" fill="#F87171" stroke="#FFFFFF" stroke-width="0.5"/>
-                        <path d="M35 65 L45 75" stroke="#FECACA" stroke-width="1"/>
-                        <path d="M45 65 L35 75" stroke="#FECACA" stroke-width="1"/>
+                        <path d="M60 100 L20 120 L50 80" fill="#991B1B" stroke="#FFFFFF" stroke-width="1.5"/>
+                        <path d="M180 100 L220 120 L190 80" fill="#991B1B" stroke="#FFFFFF" stroke-width="1.5"/>
+                        <circle cx="40" cy="80" r="8" fill="#F87171" stroke="#FFFFFF" stroke-width="0.5"/>
+                        <circle cx="200" cy="80" r="8" fill="#F87171" stroke="#FFFFFF" stroke-width="0.5"/>
+                        <path d="M35 75 L45 85" stroke="#FECACA" stroke-width="1"/>
+                        <path d="M45 75 L35 65" stroke="#FECACA" stroke-width="1"/>
                         <path d="M195 65 L205 75" stroke="#FECACA" stroke-width="1"/>
-                        <path d="M205 65 L195 75" stroke="#FECACA" stroke-width="1"/>
+                        <path d="M205 65 L195 55" stroke="#FECACA" stroke-width="1"/>
                         <rect x="110" y="170" width="20" height="20" fill="#991B1B" stroke="#FFFFFF" stroke-width="1"/>
                         <path d="M110 190 L120 200 L130 190" fill="#F87171" stroke="#FFFFFF" stroke-width="0.5"/>
                         <path d="M80 100 L160 100" stroke="#F87171" stroke-width="1.5"/>
@@ -757,8 +704,8 @@
                         <circle cx="70" cy="130" r="5" fill="#F87171" stroke="#FFFFFF" stroke-width="0.5"/>
                         <circle cx="170" cy="130" r="5" fill="#F87171" stroke="#FFFFFF" stroke-width="0.5"/>
                     </svg>
-                    <div class="engine-glow" style="width: 20px; height: 20px; background-color: #F87171; bottom: 40px; left: 120px;"></div>
-                    <div class="thruster-flame" id="thrusterRed" style="border-left: 15px solid transparent; border-right: 15px solid transparent; border-top: 40px solid #F87171; bottom: 10px; left: 115px;"></div>
+                    <div class="engine-glow" style="width: 15px; height: 15px; background-color: #F87171; bottom: 30px; left: 120px;"></div>
+                    <div class="thruster-flame" id="thrusterRed" style="border-left: 10px solid transparent; border-right: 10px solid transparent; border-top: 25px solid #F87171; bottom: 8px; left: 115px;"></div>
                     <div class="holographic-overlay"></div>
                     <div class="holographic-glare"></div>
                 </div>
@@ -773,9 +720,9 @@
     <div class="name-modal" id="nameModal">
         <div class="name-modal-content">
             <div class="modal-tech-lines"></div>
-            <h2 class="text-3xl font-bold text-blue-400 mb-4 text-center">輸入你的名稱</h2>
+            <h2 class="text-2xl sm:text-3xl font-bold text-blue-400 mb-4 text-center">輸入你的名稱</h2>
             <input type="text" id="playerNameInput" class="name-input" placeholder="太空艦長" maxlength="10">
-            <div class="flex justify-center mt-6">
+            <div class="flex justify-center mt-4">
                 <button id="submitName" class="submit-btn">開始對決</button>
             </div>
         </div>
@@ -786,13 +733,13 @@
 
         function createStars() {
             const starsLayer = document.getElementById('stars-layer');
-            for (let i = 0; i < 250; i++) {
+            for (let i = 0; i < 150; i++) {
                 const star = document.createElement('div');
                 star.classList.add('star');
                 const x = Math.random() * 100;
                 const y = Math.random() * 100;
-                const size = 0.5 + Math.random() * 3;
-                const duration = 3 + Math.random() * 7;
+                const size = 0.5 + Math.random() * 2;
+                const duration = 3 + Math.random() * 5;
                 star.style.left = `${x}%`;
                 star.style.top = `${y}%`;
                 star.style.width = `${size}px`;
@@ -805,25 +752,25 @@
                 const brightness = Math.min(0.7 + (size / 3) * 0.3, 1);
                 star.style.backgroundColor = color;
                 if (size > 1.5) {
-                    star.style.boxShadow = `0 0 ${size * 2}px ${color.replace(')', ', ' + brightness * 0.7 + ')')}`;
+                    star.style.boxShadow = `0 0 ${size * 1.5}px ${color.replace(')', ', ' + brightness * 0.7 + ')')}`;
                 }
                 star.style.setProperty('--duration', `${duration}s`);
                 star.style.setProperty('--min-opacity', '0.2');
-                star.style.setProperty('--max-opacity', '0.9');
+                star.style.setProperty('--max-opacity', '0.8');
                 starsLayer.appendChild(star);
             }
         }
 
         function createSpeedLines() {
             const speedLinesContainer = document.getElementById('speedLines');
-            for (let i = 0; i < 60; i++) {
+            for (let i = 0; i < 40; i++) {
                 const line = document.createElement('div');
                 line.classList.add('speed-line');
                 const y = Math.random() * 100;
-                const width = 20 + Math.random() * 100;
-                const delay = Math.random() * 1;
+                const width = 15 + Math.random() * 80;
+                const delay = Math.random() * 0.8;
                 const duration = 0.2 + Math.random() * 0.3;
-                const opacity = 0.3 + Math.random() * 0.5;
+                const opacity = 0.3 + Math.random() * 0.4;
                 line.style.top = `${y}%`;
                 line.style.width = `${width}px`;
                 line.style.opacity = opacity;
@@ -834,7 +781,7 @@
 
         function createParticles() {
             const particlesContainer = document.getElementById('particlesContainer');
-            for (let i = 0; i < 50; i++) {
+            for (let i = 0; i < 30; i++) {
                 const particle = document.createElement('div');
                 particle.classList.add('particle');
                 particlesContainer.appendChild(particle);
@@ -844,12 +791,12 @@
         function animateParticles() {
             const particles = document.querySelectorAll('.particle');
             particles.forEach(particle => {
-                const x = window.innerWidth / 2 + (Math.random() - 0.5) * 20;
-                const y = window.innerHeight / 2 + (Math.random() - 0.5) * 20;
+                const x = window.innerWidth / 2 + (Math.random() - 0.5) * 15;
+                const y = window.innerHeight / 2 + (Math.random() - 0.5) * 15;
                 const angle = Math.random() * Math.PI * 2;
-                const distance = 100 + Math.random() * 200;
-                const duration = 0.5 + Math.random() * 1;
-                const delay = Math.random() * 0.3;
+                const distance = 80 + Math.random() * 150;
+                const duration = 0.4 + Math.random() * 0.8;
+                const delay = Math.random() * 0.2;
                 particle.style.left = `${x}px`;
                 particle.style.top = `${y}px`;
                 const endX = x + Math.cos(angle) * distance;
@@ -919,17 +866,17 @@
                         vsContainer.classList.add('active');
                         setTimeout(() => {
                             startCountdown();
-                        }, 1000);
-                    }, 500);
-                }, 1000);
-            }, 2000);
+                        }, 800);
+                    }, 400);
+                }, 800);
+            }, 1500);
         }
 
         function setupNameInput() {
             const nameModal = document.getElementById('nameModal');
             const submitButton = document.getElementById('submitName');
             const nameInput = document.getElementById('playerNameInput');
-            const playerNameDisplay = document.getElementById('player-name');
+            const playerNameDisplay = document.querySelector('#player-name');
             submitButton.addEventListener('click', () => {
                 const playerName = nameInput.value.trim() || '太空艦長';
                 playerNameDisplay.textContent = playerName;
@@ -945,7 +892,7 @@
 
         socket.on('matchFound', ({ roomId, players }) => {
             const opponentId = Object.keys(players).find(id => id !== socket.id);
-            const enemyNameDisplay = document.getElementById('enemy-name');
+            const enemyNameDisplay = document.querySelector('#enemy-name');
             enemyNameDisplay.textContent = players[opponentId].name || '星際掠奪者';
             localStorage.setItem('roomId', roomId);
             animateShipEntry();
