@@ -189,9 +189,6 @@
                 </div>
             </div>
         </div>
-        <button id="startMatch" class="button-glow text-white font-bold py-3 px-6 rounded-lg text-lg sm:text-xl mt-8 hidden">
-            開始對戰
-        </button>
     </div>
 
     <div id="nameModal" class="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50">
@@ -313,8 +310,16 @@
             const players = Object.values(data.players);
             document.getElementById('playerName').textContent = players[0].name;
             document.getElementById('opponentName').textContent = players[1]?.name || '等待對手...';
-            document.getElementById('startMatch').classList.remove('hidden');
             localStorage.setItem('roomId', data.roomId);
+        });
+
+        socket.on('startGame', () => {
+            console.log('Starting game, redirecting to game.html');
+            document.body.style.transition = 'opacity 0.5s';
+            document.body.style.opacity = '0';
+            setTimeout(() => {
+                window.location.href = 'game.html';
+            }, 1000); // Delay for visual effect
         });
 
         document.getElementById('submitName').addEventListener('click', () => {
@@ -324,14 +329,6 @@
                 socket.emit('joinMatchmaking', { name });
                 document.getElementById('nameModal').classList.add('hidden');
             }
-        });
-
-        document.getElementById('startMatch').addEventListener('click', () => {
-            document.body.style.transition = 'opacity 0.5s';
-            document.body.style.opacity = '0';
-            setTimeout(() => {
-                window.location.href = 'game.html';
-            }, 500);
         });
     </script>
 </body>
