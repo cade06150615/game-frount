@@ -160,7 +160,7 @@
         }
         
         @media (max-width: 768px) {
-            .player-card { width: 180px; height: 260px; }
+            .player-card { width: 180px; height: 260px; } // 修改：優化平板顯示尺寸
         }
         
         .player-card:hover {
@@ -855,7 +855,8 @@
                 const enemyCard = document.getElementById('enemyCard');
                 playerCard.classList.add('active');
                 enemyCard.classList.add('active');
-                console.log('玩家卡片顯示:', playerCard.classList, '敵人卡片顯示:', enemyCard.classList); // 除錯日誌
+                console.log('玩家卡片顯示:', playerCard.classList.contains('active')); // 修改：添加除錯日誌
+                console.log('敵人卡片顯示:', enemyCard.classList.contains('active')); // 修改：添加除錯日誌
                 setTimeout(() => {
                     const flash = document.getElementById('flashEffect');
                     flash.classList.add('active');
@@ -884,7 +885,7 @@
                 localStorage.setItem('playerName', playerName);
                 nameModal.style.display = 'none';
                 socket.emit('joinMatchmaking', { name: playerName });
-                console.log('玩家名稱設置:', playerName); // 除錯日誌
+                console.log('玩家名稱設置:', playerName); // 修改：添加除錯日誌
             });
             nameInput.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') submitButton.click();
@@ -895,14 +896,15 @@
         socket.on('matchFound', ({ roomId, players }) => {
             const opponentId = Object.keys(players).find(id => id !== socket.id);
             const enemyNameDisplay = document.querySelector('#enemy-name');
-            enemyNameDisplay.textContent = players[opponentId].name || '星際掠奪者';
+            enemyNameDisplay.textContent = players[opponentId]?.name || '星際掠奪者';
             localStorage.setItem('roomId', roomId);
-            console.log('配對成功:', roomId, players); // 除錯日誌
+            console.log('配對成功:', roomId, players); // 修改：添加除錯日誌
             animateShipEntry();
         });
 
         socket.on('connect_error', (error) => {
-            console.error('Socket.IO 連線錯誤:', error);
+            console.error('Socket.IO 連線錯誤:', error); // 修改：添加錯誤日誌
+            alert('無法連接到伺服器，請檢查後端服務。');
         });
 
         function initialize() {
@@ -910,6 +912,7 @@
             createSpeedLines();
             createParticles();
             setupNameInput();
+            console.log('versus.html 初始化完成'); // 修改：添加初始化日誌
         }
 
         initialize();
