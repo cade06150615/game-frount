@@ -293,6 +293,7 @@
 
         socket.on('connect', () => {
             console.log('Connected to backend:', socket.id);
+            localStorage.setItem('playerId', socket.id); // Fix 1: Store playerId
             document.getElementById('loading').textContent = '連線成功，等待配對...';
         });
 
@@ -319,7 +320,7 @@
             document.body.style.opacity = '0';
             setTimeout(() => {
                 window.location.href = 'game.html';
-            }, 1000); // Delay for visual effect
+            }, 1000);
         });
 
         document.getElementById('submitName').addEventListener('click', () => {
