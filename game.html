@@ -52,6 +52,8 @@
             position: absolute;
             top: 0;
             left: 0;
+            width: 100%;
+            height: 100%;
             z-index: 0;
         }
 
@@ -208,7 +210,7 @@
         }
 
         @media (max-width: 1024px) {
-            .joystick-container, .shoot-button { display: block; }
+            .joystick-container, .shoot-button { display: block; } // 修改：確保平板顯示搖桿和射擊按鈕
         }
     </style>
 </head>
@@ -217,7 +219,7 @@
     <div class="stars-layer" id="stars-layer"></div>
     <canvas id="gameCanvas"></canvas>
 
-    <div class="modal" id="nameModal" style="display: none;">
+    <div class="modal" id="nameModal">
         <div class="modal-content">
             <h2 class="text-2xl sm:text-3xl font-bold text-blue-400 mb-4 text-center">輸入你的名稱</h2>
             <input type="text" id="playerNameInput" class="input-field" placeholder="太空艦長" maxlength="10">
@@ -243,73 +245,4 @@
             <p class="text-base sm:text-lg text-white mb-2">你的得分：<span id="playerFinalScore"></span></p>
             <p class="text-base sm:text-lg text-white mb-4">對手得分：<span id="opponentFinalScore"></span></p>
             <div class="flex justify-center">
-                <button id="returnToMenu" class="btn">返回主選單</button>
-            </div>
-        </div>
-    </div>
-
-    <div class="health-bar" style="top: 15px; left: 15px;">
-        <div id="playerHealth" class="health-fill bg-green-500" style="width: 100%"></div>
-    </div>
-    <div class="health-bar" style="top: 15px; right: 15px;">
-        <div id="enemyHealth" class="health-fill bg-red-500" style="width: 100%"></div>
-    </div>
-    <div class="score-display" style="top: 40px; left: 15px;" id="playerScore">得分: 0</div>
-    <div class="score-display" style="top: 40px; right: 15px;" id="enemyScore">對手得分: 0</div>
-
-    <div class="joystick-container" id="joystick">
-        <div class="joystick-base">
-            <div class="joystick-stick" id="joystickStick"></div>
-        </div>
-    </div>
-    <div class="shoot-button" id="shootButton">射擊</div>
-
-    <script>
-        const socket = io('https://game-backed-2.onrender.com');
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        const nameModal = document.getElementById('nameModal');
-        const matchmakingModal = document.getElementById('matchmakingModal');
-        const gameOverModal = document.getElementById('gameOverModal');
-        const playerNameInput = document.getElementById('playerNameInput');
-        const joinGameButton = document.getElementById('joinGame');
-        const matchmakingPlayerName = document.getElementById('matchmakingPlayerName');
-        const matchmakingProgressBar = document.getElementById('matchmakingProgress');
-        const timeLeft = document.getElementById('timeLeft');
-        const playerHealthBar = document.getElementById('playerHealth');
-        const enemyHealthBar = document.getElementById('enemyHealth');
-        const playerScoreDisplay = document.getElementById('playerScore');
-        const enemyScoreDisplay = document.getElementById('enemyScore');
-        const gameOverMessage = document.getElementById('gameOverMessage');
-        const playerFinalScoreDisplay = document.getElementById('playerFinalScore');
-        const opponentFinalScoreDisplay = document.getElementById('opponentFinalScore');
-        const returnToMenuButton = document.getElementById('returnToMenu');
-        const joystick = document.getElementById('joystick');
-        const joystickStick = document.getElementById('joystickStick');
-        const shootButton = document.getElementById('shootButton');
-
-        let playerName = localStorage.getItem('playerName') || '太空艦長';
-        let enemyName = '';
-        let roomId = localStorage.getItem('roomId');
-        let opponentId = null;
-        let gameActive = false;
-        let playerX = 100;
-        let playerY = window.innerHeight / 2;
-        let playerAngle = 0;
-        let playerHealth = 100;
-        let enemyX = window.innerWidth - 100;
-        let enemyY = window.innerHeight / 2;
-        let enemyAngle = 180;
-        let enemyHealth = 100;
-        let score = 0;
-        let enemyScore = 0;
-        const playerSpeed = 5;
-        const bulletSpeed = 15;
-        const bulletLifetime = 2000;
-        const shootingCooldown = 200;
-        let lastShotTime = 0;
-        const keys = {};
-        let bullets = [];
-        let joystickActive = false;
-        let joystickStartX = 0;
-        let
+                <button id="returnToMenu
