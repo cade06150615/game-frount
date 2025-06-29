@@ -146,11 +146,12 @@
             reconnectionAttempts: 5
         });
 
-        let playerId = socket.id;
+        let playerId = localStorage.getItem('playerId'); // Fix 1: Use stored playerId
         let roomId = localStorage.getItem('roomId');
         let playerName = localStorage.getItem('playerName');
         let players = {};
         let bullets = [];
+        let isGameReady = false;
 
         function drawSpaceship(x, y, angle, color) {
             ctx.save();
@@ -177,21 +178,27 @@
         }
 
         function updateGame() {
+            if (!isGameReady) return; // Fix 2: Wait for initial state
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             for (const id in players) {
                 const player = players[id];
-                drawSpaceship(player.x, player.y, player.angle, id === socket.id ? '#3B82F6' : '#EF4444');
-                ctx.fillStyle = 'white';
-                ctx.font = '14px Orbitron';
-                ctx.fillText(`${player.name}: ${player.health} HP`, player.x - 40, player.y - 30);
+                if (player && !player.disconnected) {
+                    drawSpaceship(player.x, player.y, player.angle, id === playerId ? '#3B82F6' : '#EF4444');
+                    ctx.fillStyle = 'white';
+                    ctx.font = '14px Orbitron';
+                    ctx.fillText(`${player.name}: ${player.health} HP`, player.x - 40, player.y - 30);
+                }
             }
             bullets.forEach(bullet => drawBullet(bullet.x, bullet.y));
-            console.log('Game updated:', players, bullets);
+            console.log('Game updated:', { players, bullets, playerId });
         }
 
         socket.on('connect', () => {
             console.log('Connected to backend:', socket.id);
-            playerId = socket.id;
+            if (!playerId) {
+                playerId = socket.id;
+                localStorage.setItem('playerId', socket.id);
+            }
         });
 
         socket.on('connect_error', (error) => {
@@ -200,16 +207,19 @@
         });
 
         socket.on('gameStateUpdate', (state) => {
-            players = state.players;
+            console.log('Received gameStateUpdate:', state);
+            players = state.players || {};
             bullets = state.bullets || [];
+            isGameReady = true; // Fix 2: Mark game as ready
             updateGame();
         });
 
         socket.on('gameOver', (data) => {
-            const winner = data.winnerId === socket.id ? playerName : Object.values(data.scores).find(p => p.name !== playerName).name;
+            console.log('Game over:', data);
+            const winner = data.winnerId === playerId ? playerName : Object.values(data.scores).find(p => p.name !== playerName)?.name || '未知';
             document.getElementById('gameResult').innerHTML = `
                 <p>勝利者: ${winner}</p>
-                <p>你的分數: ${data.scores[socket.id]?.score || 0}</p>
+                <p>你的分數: ${data.scores[playerId]?.score || 0}</p>
             `;
             document.getElementById('gameOverModal').classList.remove('hidden');
         });
@@ -236,15 +246,16 @@
         });
 
         canvas.addEventListener('click', () => {
-            if (players[socket.id]) {
+            if (players[playerId] && !players[playerId].disconnected) {
                 const bullet = {
-                    id: `${socket.id}-${Date.now()}`,
-                    x: players[socket.id].x,
-                    y: players[socket.id].y,
-                    angle: players[socket.id].angle,
+                    id: `${playerId}-${Date.now()}`,
+                    x: players[playerId].x,
+                    y: players[playerId].y,
+                    angle: players[playerId].angle,
                     time: Date.now()
                 };
                 socket.emit('playerShoot', bullet);
+                console.log('Bullet fired:', bullet);
             }
         });
 
@@ -257,64 +268,69 @@
         });
 
         joystick.on('move', (evt, data) => {
-            if (data.direction) {
+            if (data.direction && players[playerId] && !players[playerId].disconnected) {
                 const speed = 5;
                 let dx = 0, dy = 0;
                 if (data.direction.x === 'left') dx = -speed;
                 if (data.direction.x === 'right') dx = speed;
                 if (data.direction.y === 'up') dy = -speed;
                 if (data.direction.y === 'down') dy = speed;
-                if (players[socket.id]) {
-                    players[socket.id].x += dx;
-                    players[socket.id].y += dy;
-                    socket.emit('playerMove', {
-                        x: players[socket.id].x,
-                        y: players[socket.id].y,
-                        angle: players[socket.id].angle
-                    });
-                }
+                players[playerId].x += dx;
+                players[playerId].y += dy;
+                socket.emit('playerMove', {
+                    x: players[playerId].x,
+                    y: players[playerId].y,
+                    angle: players[playerId].angle
+                });
             }
         });
 
         document.getElementById('shootButton').addEventListener('touchstart', () => {
-            if (players[socket.id]) {
+            if (players[playerId] && !players[playerId].disconnected) {
                 const bullet = {
-                    id: `${socket.id}-${Date.now()}`,
-                    x: players[socket.id].x,
-                    y: players[socket.id].y,
-                    angle: players[socket.id].angle,
+                    id: `${playerId}-${Date.now()}`,
+                    x: players[playerId].x,
+                    y: players[playerId].y,
+                    angle: players[playerId].angle,
                     time: Date.now()
                 };
                 socket.emit('playerShoot', bullet);
+                console.log('Bullet fired:', bullet);
             }
         });
 
         // Game loop
         function gameLoop() {
-            if (players[socket.id]) {
-                const speed = 5;
-                let dx = 0, dy = 0;
-                if (keys['w'] || keys['ArrowUp']) dy -= speed;
-                if (keys['s'] || keys['ArrowDown']) dy += speed;
-                if (keys['a'] || keys['ArrowLeft']) dx -= speed;
-                if (keys['d'] || keys['ArrowRight']) dx += speed;
-                players[socket.id].x += dx;
-                players[socket.id].y += dy;
-                players[socket.id].x = Math.max(0, Math.min(canvas.width, players[socket.id].x));
-                players[socket.id].y = Math.max(0, Math.min(canvas.height, players[socket.id].y));
-                const angle = Math.atan2(mouseY - players[socket.id].y, mouseX - players[socket.id].x) * 180 / Math.PI;
-                players[socket.id].angle = angle;
-                socket.emit('playerMove', {
-                    x: players[socket.id].x,
-                    y: players[socket.id].y,
-                    angle
-                });
+            if (isGameReady) {
+                if (players[playerId] && !players[playerId].disconnected) {
+                    const speed = 5;
+                    let dx = 0, dy = 0;
+                    if (keys['w'] || keys['ArrowUp']) dy -= speed;
+                    if (keys['s'] || keys['ArrowDown']) dy += speed;
+                    if (keys['a'] || keys['ArrowLeft']) dx -= speed;
+                    if (keys['d'] || keys['ArrowRight']) dx += speed;
+                    players[playerId].x += dx;
+                    players[playerId].y += dy;
+                    players[playerId].x = Math.max(0, Math.min(canvas.width, players[playerId].x));
+                    players[playerId].y = Math.max(0, Math.min(canvas.height, players[playerId].y));
+                    const angle = Math.atan2(mouseY - players[playerId].y, mouseX - players[playerId].x) * 180 / Math.PI;
+                    players[playerId].angle = angle;
+                    socket.emit('playerMove', {
+                        x: players[playerId].x,
+                        y: players[playerId].y,
+                        angle
+                    });
+                }
+                updateGame();
             }
             requestAnimationFrame(gameLoop);
         }
 
         createStars();
-        gameLoop();
+        setTimeout(() => {
+            console.log('Starting game loop after delay');
+            gameLoop();
+        }, 1000); // Fix 2: Delay to ensure initial state
     </script>
 </body>
 </html>
