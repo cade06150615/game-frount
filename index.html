@@ -3,8 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>太空射擊遊戲</title>
+    <title>太空射擊對決</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/nipplejs@0.10.0/dist/nipplejs.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
 
@@ -46,56 +48,71 @@
             50% { opacity: var(--max-opacity); }
         }
 
-        .meteor {
+        canvas {
             position: absolute;
-            background: linear-gradient(to bottom right, #ffffff, transparent);
-            transform: rotate(45deg);
-            animation: meteorFall var(--duration) linear infinite;
+            top: 0;
+            left: 0;
+            z-index: 10;
         }
 
-        @keyframes meteorFall {
-            0% { transform: translate(0, 0) rotate(45deg); }
-            100% { transform: translate(var(--x-end), var(--y-end)) rotate(45deg); }
+        .joystick-container {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            width: 100px;
+            height: 100px;
+            z-index: 20;
         }
 
-        .button-glow {
+        .shoot-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 80px;
+            height: 80px;
             background: linear-gradient(to right, #3B82F6, #1D4ED8);
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1rem;
+            font-weight: bold;
+            z-index: 20;
         }
 
-        .button-glow:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+        @media (min-width: 769px) {
+            .joystick-container, .shoot-button { display: none; }
         }
 
-        .button-glow::after {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: linear-gradient(45deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.2) 50%, rgba(255, 255, 255, 0) 100%);
-            transform: rotate(45deg);
-            animation: buttonGlare 3s infinite linear;
-        }
-
-        @keyframes buttonGlare {
-            0% { transform: rotate(45deg) translateX(-100%); }
-            100% { transform: rotate(45deg) translateX(100%); }
-        }
-
-        .modal {
+        .game-over-modal {
             background: linear-gradient(135deg, #1a2a4a, #0f172a);
             border: 2px solid #3B82F6;
             box-shadow: 0 0 30px rgba(59, 130, 246, 0.5);
         }
 
-        @media (max-width: 768px) {
-            h1 { font-size: 2.5rem; }
-            .button-glow, .bg-gray-700 { font-size: 0.9rem; padding: 0.5rem 1rem; }
+        .error-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 1.5rem;
+            text-align: center;
+            z-index: 15;
+        }
+
+        .debug-overlay {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            color: white;
+            font-size: 12px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            z-index: 20;
+            max-width: 300px;
+            overflow-y: auto;
         }
     </style>
 </head>
@@ -104,36 +121,17 @@
     <div class="stars-layer" id="stars-layer-1"></div>
     <div class="stars-layer" id="stars-layer-2"></div>
     <div class="stars-layer" id="stars-layer-3"></div>
-    <div id="meteors"></div>
+    <canvas id="gameCanvas"></canvas>
+    <div class="joystick-container" id="joystick"></div>
+    <div class="shoot-button" id="shootButton">射擊</div>
+    <div id="errorMessage" class="error-message hidden">等待遊戲資料...</div>
+    <div id="debugOverlay" class="debug-overlay">連接中...</div>
 
-    <div class="relative min-h-screen flex flex-col items-center justify-center px-4 sm:px-6 md:px-8">
-        <h1 class="text-4xl sm:text-5xl md:text-6xl font-bold text-white mb-8 sm:mb-10 text-shadow-[0_0_20px_rgba(255,255,255,0.8)]">
-            太空射擊對決
-        </h1>
-        <div class="flex flex-col gap-4 w-full max-w-xs sm:max-w-sm">
-            <button id="startGame" class="button-glow text-white font-bold py-3 px-6 rounded-lg text-lg sm:text-xl">
-                開始遊戲
-            </button>
-            <button id="showInstructions" class="bg-gray-700 text-white font-bold py-3 px-6 rounded-lg text-lg sm:text-xl hover:bg-gray-600">
-                遊戲說明
-            </button>
-        </div>
-    </div>
-
-    <div id="instructionsModal" class="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 hidden">
-        <div class="modal rounded-lg p-6 sm:p-8 max-w-md w-full mx-4 relative">
-            <button id="closeInstructions" class="absolute top-2 right-2 text-white text-2xl">×</button>
-            <h2 class="text-2xl sm:text-3xl font-bold text-blue-400 mb-4">遊戲說明</h2>
-            <div class="text-blue-100 space-y-4 text-sm sm:text-base">
-                <p>歡迎體驗太空射擊對決！</p>
-                <ul class="list-disc list-inside">
-                    <li>平板：使用虛擬搖桿移動，點擊射擊按鈕</li>
-                    <li>鍵盤：WASD 或方向鍵控制飛船移動</li>
-                    <li>滑鼠：移動控制瞄準，左鍵射擊</li>
-                    <li>擊敗對手，獲得最高分數！</li>
-                    <li>注意血量，保護你的飛船！</li>
-                </ul>
-            </div>
+    <div id="gameOverModal" class="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 hidden">
+        <div class="game-over-modal rounded-lg p-6 sm:p-8 max-w-md w-full mx-4 relative">
+            <h2 class="text-2xl sm:text-3xl font-bold text-blue-400 mb-4">遊戲結束</h2>
+            <div id="gameResult" class="text-blue-100 space-y-4 text-sm sm:text-base"></div>
+            <button id="returnToMenu" class="button-glow text-white font-bold py-2 px-4 rounded-lg w-full mt-4">返回主選單</button>
         </div>
     </div>
 
@@ -167,52 +165,283 @@
             }
         }
 
-        function createMeteors() {
-            const meteorsContainer = document.getElementById('meteors');
-            const meteorCount = 2;
-            for (let i = 0; i < meteorCount; i++) {
-                const meteor = document.createElement('div');
-                meteor.classList.add('meteor');
-                const startX = Math.random() * 100;
-                const startY = Math.random() * 100;
-                const size = 15 + Math.random() * 20;
-                const duration = 10 + Math.random() * 15;
-                const xEnd = startX + (Math.random() - 0.5) * 150;
-                const yEnd = startY + (Math.random() - 0.5) * 150;
-                meteor.style.left = `${startX}%`;
-                meteor.style.top = `${startY}%`;
-                meteor.style.width = `${size}px`;
-                meteor.style.height = `${size}px`;
-                meteor.style.setProperty('--duration', `${duration}s`);
-                meteor.style.setProperty('--x-end', `${xEnd}%`);
-                meteor.style.setProperty('--y-end', `${yEnd}%`);
-                meteorsContainer.appendChild(meteor);
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const errorMessage = document.getElementById('errorMessage');
+        const debugOverlay = document.getElementById('debugOverlay');
+
+        function resizeCanvas() {
+            canvas.width = Math.min(window.innerWidth, 800);
+            canvas.height = Math.min(window.innerHeight, 600);
+            console.log(`Canvas resized: ${canvas.width}x${canvas.height}`);
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // Clear localStorage to avoid stale playerId
+        localStorage.removeItem('playerId');
+        let playerId = null;
+        let roomId = localStorage.getItem('roomId');
+        let playerName = localStorage.getItem('playerName');
+        let players = {};
+        let bullets = [];
+        let isGameReady = false;
+        let isNippleJsLoaded = typeof nipplejs !== 'undefined';
+
+        const socket = io('https://game-backed-3.onrender.com', {
+            transports: ['websocket'],
+            reconnectionAttempts: 10,
+            reconnectionDelay: 1000
+        });
+
+        function updateDebugOverlay() {
+            const bulletInfo = bullets.map(b => `Bullet ${b.id}: (${b.x.toFixed(2)}, ${b.y.toFixed(2)})`).join('<br>');
+            debugOverlay.innerHTML = `
+                Player ID: ${playerId || 'N/A'}<br>
+                Socket ID: ${socket.id || 'N/A'}<br>
+                Room ID: ${roomId || 'N/A'}<br>
+                Players: ${Object.keys(players).length}<br>
+                Bullets: ${bullets.length}<br>
+                Game Ready: ${isGameReady}<br>
+                Connected: ${socket.connected}<br>
+                Nipple.js Loaded: ${isNippleJsLoaded}<br>
+                ${bulletInfo ? '<br>Bullets:<br>' + bulletInfo : ''}
+            `;
+        }
+
+        function drawSpaceship(x, y, angle, color, name, health) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate((angle * Math.PI) / 180);
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.moveTo(0, -20);
+            ctx.lineTo(15, 10);
+            ctx.lineTo(5, 5);
+            ctx.lineTo(-5, 5);
+            ctx.lineTo(-15, 10);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+            ctx.fillStyle = 'white';
+            ctx.font = '14px Orbitron';
+            ctx.fillText(`${name}: ${health} HP`, x - 40, y - 30);
+            console.log(`Drawing spaceship: ${name} at (${x}, ${y}), angle: ${angle}, health: ${health}`);
+        }
+
+        function drawBullet(x, y, id) {
+            ctx.beginPath();
+            ctx.arc(x, y, 7, 0, Math.PI * 2); // Larger for visibility
+            ctx.fillStyle = '#FFD700';
+            ctx.fill();
+            ctx.closePath();
+            console.log(`Drawing bullet ${id} at (${x}, ${y})`);
+        }
+
+        function updateGame() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (!isGameReady || Object.keys(players).length === 0) {
+                errorMessage.textContent = '等待遊戲資料或玩家資料缺失';
+                errorMessage.classList.remove('hidden');
+                console.log('Cannot render: ', { isGameReady, playerCount: Object.keys(players).length, hasPlayer: !!players[playerId] });
+                return;
             }
+            errorMessage.classList.add('hidden');
+            for (const id in players) {
+                const player = players[id];
+                if (player && !player.disconnected) {
+                    drawSpaceship(
+                        player.x,
+                        player.y,
+                        player.angle,
+                        id === playerId ? '#3B82F6' : '#EF4444',
+                        player.name,
+                        player.health
+                    );
+                }
+            }
+            if (bullets.length > 0) {
+                bullets.forEach(bullet => drawBullet(bullet.x, bullet.y, bullet.id));
+            } else {
+                console.log('No bullets to render');
+            }
+            console.log('Game updated:', { players, bullets, playerId });
         }
 
-        function initializeSpace() {
-            createStars();
-            createMeteors();
-            console.log('Starfield initialized');
+        socket.on('connect', () => {
+            console.log('Connected to backend:', socket.id);
+            playerId = socket.id;
+            localStorage.setItem('playerId', socket.id);
+            socket.emit('rejoinGame', { roomId, playerId });
+            updateDebugOverlay();
+        });
+
+        socket.on('connect_error', (error) => {
+            console.error('Connection error:', error);
+            errorMessage.textContent = '無法連接到伺服器，請檢查後端服務';
+            errorMessage.classList.remove('hidden');
+            updateDebugOverlay();
+        });
+
+        socket.on('gameStateUpdate', (state) => {
+            console.log('Received gameStateUpdate:', state);
+            if (state.playerId) {
+                playerId = state.playerId;
+                localStorage.setItem('playerId', state.playerId);
+            }
+            players = state.players || {};
+            bullets = state.bullets || [];
+            isGameReady = true;
+            updateGame();
+            updateDebugOverlay();
+        });
+
+        socket.on('gameOver', (data) => {
+            console.log('Game over:', data);
+            const winner = data.winnerId === playerId ? playerName : Object.values(data.scores).find(p => p.name !== playerName)?.name || '未知';
+            document.getElementById('gameResult').innerHTML = `
+                <p>勝利者: ${winner}</p>
+                <p>你的分數: ${data.scores[playerId]?.score || 0}</p>
+            `;
+            document.getElementById('gameOverModal').classList.remove('hidden');
+        });
+
+        document.getElementById('returnToMenu').addEventListener('click', () => {
+            window.location.href = 'index.html';
+        });
+
+        // Keyboard controls
+        const keys = {};
+        document.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
+        });
+        document.addEventListener('keyup', (e) => {
+            keys[e.key] = false;
+        });
+
+        // Mouse aiming
+        let mouseX = canvas.width / 2;
+        let mouseY = canvas.height / 2;
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            mouseX = e.clientX - rect.left;
+            mouseY = e.clientY - rect.top;
+        });
+
+        canvas.addEventListener('click', () => {
+            if (players[playerId] && !players[playerId].disconnected) {
+                const bullet = {
+                    id: `${playerId}-${Date.now()}`,
+                    x: players[playerId].x,
+                    y: players[playerId].y,
+                    angle: players[playerId].angle,
+                    time: Date.now()
+                };
+                socket.emit('playerShoot', bullet);
+                console.log('Bullet fired:', bullet);
+            } else {
+                console.log('Cannot shoot: player not ready or disconnected', { playerId, players });
+            }
+        });
+
+        // Touch controls
+        let joystick = null;
+        if (isNippleJsLoaded) {
+            try {
+                joystick = nipplejs.create({
+                    zone: document.getElementById('joystick'),
+                    mode: 'static',
+                    position: { left: '50%', top: '50%' },
+                    color: '#3B82F6'
+                });
+                console.log('Joystick initialized');
+            } catch (e) {
+                console.error('Failed to initialize joystick:', e);
+                isNippleJsLoaded = false;
+            }
+        } else {
+            console.warn('Nipple.js not loaded, skipping joystick initialization');
         }
 
-        initializeSpace();
+        if (joystick) {
+            joystick.on('move', (evt, data) => {
+                if (data.direction && players[playerId] && !players[playerId].disconnected) {
+                    const speed = 5;
+                    let dx = 0, dy = 0;
+                    if (data.direction.x === 'left') dx = -speed;
+                    if (data.direction.x === 'right') dx = speed;
+                    if (data.direction.y === 'up') dy = -speed;
+                    if (data.direction.y === 'down') dy = speed;
+                    players[playerId].x += dx;
+                    players[playerId].y += dy;
+                    players[playerId].x = Math.max(0, Math.min(canvas.width, players[playerId].x));
+                    players[playerId].y = Math.max(0, Math.min(canvas.height, players[playerId].y));
+                    socket.emit('playerMove', {
+                        x: players[playerId].x,
+                        y: players[playerId].y,
+                        angle: players[playerId].angle
+                    });
+                }
+            });
+        }
 
-        document.getElementById('startGame').addEventListener('click', function() {
-            document.body.style.transition = 'opacity 0.5s';
-            document.body.style.opacity = '0';
-            setTimeout(() => {
-                window.location.href = 'versus.html';
-            }, 500);
+        document.getElementById('shootButton').addEventListener('touchstart', () => {
+            if (players[playerId] && !players[playerId].disconnected) {
+                const bullet = {
+                    id: `${playerId}-${Date.now()}`,
+                    x: players[playerId].x,
+                    y: players[playerId].y,
+                    angle: players[playerId].angle,
+                    time: Date.now()
+                };
+                socket.emit('playerShoot', bullet);
+                console.log('Bullet fired:', bullet);
+            } else {
+                console.log('Cannot shoot: player not ready or disconnected', { playerId, players });
+            }
         });
 
-        document.getElementById('showInstructions').addEventListener('click', function() {
-            document.getElementById('instructionsModal').classList.remove('hidden');
-        });
+        // Game loop
+        function gameLoop() {
+            if (isGameReady) {
+                if (players[playerId] && !players[playerId].disconnected) {
+                    const speed = 5;
+                    let dx = 0, dy = 0;
+                    if (keys['w'] || keys['ArrowUp']) dy -= speed;
+                    if (keys['s'] || keys['ArrowDown']) dy += speed;
+                    if (keys['a'] || keys['ArrowLeft']) dx = -speed;
+                    if (keys['d'] || keys['ArrowRight']) dx = speed;
+                    players[playerId].x += dx;
+                    players[playerId].y += dy;
+                    players[playerId].x = Math.max(0, Math.min(canvas.width, players[playerId].x));
+                    players[playerId].y = Math.max(0, Math.min(canvas.height, players[playerId].y));
+                    const angle = Math.atan2(mouseY - players[playerId].y, mouseX - players[playerId].x) * 180 / Math.PI;
+                    players[playerId].angle = angle;
+                    socket.emit('playerMove', {
+                        x: players[playerId].x,
+                        y: players[playerId].y,
+                        angle
+                    });
+                }
+                updateGame();
+            }
+            updateDebugOverlay();
+            requestAnimationFrame(gameLoop);
+        }
 
-        document.getElementById('closeInstructions').addEventListener('click', function() {
-            document.getElementById('instructionsModal').classList.add('hidden');
-        });
+        setTimeout(() => {
+            if (!isGameReady) {
+                errorMessage.textContent = '無法載入遊戲資料，請重新整理';
+                errorMessage.classList.remove('hidden');
+                console.error('Game state not received after 5 seconds');
+            }
+        }, 5000);
+
+        createStars();
+        setTimeout(() => {
+            console.log('Starting game loop after delay');
+            gameLoop();
+        }, 1000);
     </script>
 </body>
 </html>
