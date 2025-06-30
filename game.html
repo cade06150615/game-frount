@@ -6,7 +6,6 @@
     <title>太空射擊對決</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/nipplejs@0.10.0/dist/nipplejs.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
 
@@ -55,36 +54,6 @@
             z-index: 10;
         }
 
-        .joystick-container {
-            position: fixed;
-            bottom: 20px;
-            left: 20px;
-            width: 100px;
-            height: 100px;
-            z-index: 20;
-        }
-
-        .shoot-button {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            width: 80px;
-            height: 80px;
-            background: linear-gradient(to right, #3B82F6, #1D4ED8);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 1rem;
-            font-weight: bold;
-            z-index: 20;
-        }
-
-        @media (min-width: 769px) {
-            .joystick-container, .shoot-button { display: none; }
-        }
-
         .game-over-modal {
             background: linear-gradient(135deg, #1a2a4a, #0f172a);
             border: 2px solid #3B82F6;
@@ -122,8 +91,6 @@
     <div class="stars-layer" id="stars-layer-2"></div>
     <div class="stars-layer" id="stars-layer-3"></div>
     <canvas id="gameCanvas"></canvas>
-    <div class="joystick-container" id="joystick"></div>
-    <div class="shoot-button" id="shootButton">射擊</div>
     <div id="errorMessage" class="error-message hidden">等待遊戲資料...</div>
     <div id="debugOverlay" class="debug-overlay">連接中...</div>
 
@@ -186,7 +153,6 @@
         let players = {};
         let bullets = [];
         let isGameReady = false;
-        let isNippleJsLoaded = typeof nipplejs !== 'undefined';
 
         const socket = io('https://game-backed-3.onrender.com', {
             transports: ['websocket'],
@@ -195,7 +161,7 @@
         });
 
         function updateDebugOverlay() {
-            const bulletInfo = bullets.map(b => `Bullet ${b.id}: (${b.x.toFixed(2)}, ${b.y.toFixed(2)})`).join('<br>');
+            const bulletInfo = bullets.map(b => `Bullet ${b.id}: (${b.x?.toFixed(2) || 'N/A'}, ${b.y?.toFixed(2) || 'N/A'})`).join('<br>');
             debugOverlay.innerHTML = `
                 Player ID: ${playerId || 'N/A'}<br>
                 Socket ID: ${socket.id || 'N/A'}<br>
@@ -204,12 +170,15 @@
                 Bullets: ${bullets.length}<br>
                 Game Ready: ${isGameReady}<br>
                 Connected: ${socket.connected}<br>
-                Nipple.js Loaded: ${isNippleJsLoaded}<br>
                 ${bulletInfo ? '<br>Bullets:<br>' + bulletInfo : ''}
             `;
         }
 
         function drawSpaceship(x, y, angle, color, name, health) {
+            if (isNaN(x) || isNaN(y) || isNaN(angle)) {
+                console.warn(`Skipping spaceship render for ${name}: invalid data`, { x, y, angle });
+                return;
+            }
             ctx.save();
             ctx.translate(x, y);
             ctx.rotate((angle * Math.PI) / 180);
@@ -230,8 +199,12 @@
         }
 
         function drawBullet(x, y, id) {
+            if (isNaN(x) || isNaN(y)) {
+                console.warn(`Skipping bullet render for ${id}: invalid coordinates`, { x, y });
+                return;
+            }
             ctx.beginPath();
-            ctx.arc(x, y, 7, 0, Math.PI * 2); // Larger for visibility
+            ctx.arc(x, y, 10, 0, Math.PI * 2); // Larger for visibility
             ctx.fillStyle = '#FFD700';
             ctx.fill();
             ctx.closePath();
@@ -249,19 +222,27 @@
             errorMessage.classList.add('hidden');
             for (const id in players) {
                 const player = players[id];
-                if (player && !player.disconnected) {
+                if (player && !player.disconnected && player.x && player.y && player.angle !== undefined) {
                     drawSpaceship(
                         player.x,
                         player.y,
                         player.angle,
                         id === playerId ? '#3B82F6' : '#EF4444',
-                        player.name,
-                        player.health
+                        player.name || 'Unknown',
+                        player.health || 100
                     );
+                } else {
+                    console.warn(`Skipping player render for ${id}: invalid or disconnected`, player);
                 }
             }
             if (bullets.length > 0) {
-                bullets.forEach(bullet => drawBullet(bullet.x, bullet.y, bullet.id));
+                bullets.forEach(bullet => {
+                    if (bullet && bullet.x && bullet.y && bullet.id) {
+                        drawBullet(bullet.x, bullet.y, bullet.id);
+                    } else {
+                        console.warn(`Skipping bullet render: invalid data`, bullet);
+                    }
+                });
             } else {
                 console.log('No bullets to render');
             }
@@ -329,63 +310,6 @@
         });
 
         canvas.addEventListener('click', () => {
-            if (players[playerId] && !players[playerId].disconnected) {
-                const bullet = {
-                    id: `${playerId}-${Date.now()}`,
-                    x: players[playerId].x,
-                    y: players[playerId].y,
-                    angle: players[playerId].angle,
-                    time: Date.now()
-                };
-                socket.emit('playerShoot', bullet);
-                console.log('Bullet fired:', bullet);
-            } else {
-                console.log('Cannot shoot: player not ready or disconnected', { playerId, players });
-            }
-        });
-
-        // Touch controls
-        let joystick = null;
-        if (isNippleJsLoaded) {
-            try {
-                joystick = nipplejs.create({
-                    zone: document.getElementById('joystick'),
-                    mode: 'static',
-                    position: { left: '50%', top: '50%' },
-                    color: '#3B82F6'
-                });
-                console.log('Joystick initialized');
-            } catch (e) {
-                console.error('Failed to initialize joystick:', e);
-                isNippleJsLoaded = false;
-            }
-        } else {
-            console.warn('Nipple.js not loaded, skipping joystick initialization');
-        }
-
-        if (joystick) {
-            joystick.on('move', (evt, data) => {
-                if (data.direction && players[playerId] && !players[playerId].disconnected) {
-                    const speed = 5;
-                    let dx = 0, dy = 0;
-                    if (data.direction.x === 'left') dx = -speed;
-                    if (data.direction.x === 'right') dx = speed;
-                    if (data.direction.y === 'up') dy = -speed;
-                    if (data.direction.y === 'down') dy = speed;
-                    players[playerId].x += dx;
-                    players[playerId].y += dy;
-                    players[playerId].x = Math.max(0, Math.min(canvas.width, players[playerId].x));
-                    players[playerId].y = Math.max(0, Math.min(canvas.height, players[playerId].y));
-                    socket.emit('playerMove', {
-                        x: players[playerId].x,
-                        y: players[playerId].y,
-                        angle: players[playerId].angle
-                    });
-                }
-            });
-        }
-
-        document.getElementById('shootButton').addEventListener('touchstart', () => {
             if (players[playerId] && !players[playerId].disconnected) {
                 const bullet = {
                     id: `${playerId}-${Date.now()}`,
