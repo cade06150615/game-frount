@@ -303,7 +303,7 @@
 
         socket.on('matchFound', (data) => {
             console.log('Match found:', data);
-            localStorage.setItem('playerId', data.playerId); // Fix 1: Update playerId
+            localStorage.setItem('playerId', data.playerId);
             localStorage.setItem('roomId', data.roomId);
             document.getElementById('loading').classList.add('hidden');
             document.getElementById('vsContainer').classList.add('active');
@@ -316,7 +316,7 @@
 
         socket.on('startGame', (data) => {
             console.log('Starting game, playerId:', data.playerId);
-            localStorage.setItem('playerId', data.playerId); // Fix 1: Update playerId
+            localStorage.setItem('playerId', data.playerId);
             document.body.style.transition = 'opacity 0.5s';
             document.body.style.opacity = '0';
             setTimeout(() => {
