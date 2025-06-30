@@ -90,6 +90,17 @@
             border: 2px solid #3B82F6;
             box-shadow: 0 0 30px rgba(59, 130, 246, 0.5);
         }
+
+        .error-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 1.5rem;
+            text-align: center;
+            z-index: 15;
+        }
     </style>
 </head>
 <body>
@@ -97,9 +108,10 @@
     <div class="stars-layer" id="stars-layer-1"></div>
     <div class="stars-layer" id="stars-layer-2"></div>
     <div class="stars-layer" id="stars-layer-3"></div>
-    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <canvas id="gameCanvas"></canvas>
     <div class="joystick-container" id="joystick"></div>
     <div class="shoot-button" id="shootButton">射擊</div>
+    <div id="errorMessage" class="error-message hidden">等待遊戲資料...</div>
 
     <div id="gameOverModal" class="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 hidden">
         <div class="game-over-modal rounded-lg p-6 sm:p-8 max-w-md w-full mx-4 relative">
@@ -141,19 +153,30 @@
 
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
+        const errorMessage = document.getElementById('errorMessage');
+
+        // Fix 5: Set canvas size dynamically
+        function resizeCanvas() {
+            canvas.width = Math.min(window.innerWidth, 800);
+            canvas.height = Math.min(window.innerHeight, 600);
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
         const socket = io('https://game-backed-3.onrender.com', {
             transports: ['websocket'],
-            reconnectionAttempts: 5
+            reconnectionAttempts: 5,
+            reconnectionDelay: 1000
         });
 
-        let playerId = localStorage.getItem('playerId'); // Fix 1: Use stored playerId
+        let playerId = localStorage.getItem('playerId');
         let roomId = localStorage.getItem('roomId');
         let playerName = localStorage.getItem('playerName');
         let players = {};
         let bullets = [];
         let isGameReady = false;
 
-        function drawSpaceship(x, y, angle, color) {
+        function drawSpaceship(x, y, angle, color, name, health) {
             ctx.save();
             ctx.translate(x, y);
             ctx.rotate((angle * Math.PI) / 180);
@@ -167,6 +190,9 @@
             ctx.closePath();
             ctx.fill();
             ctx.restore();
+            ctx.fillStyle = 'white';
+            ctx.font = '14px Orbitron';
+            ctx.fillText(`${name}: ${health} HP`, x - 40, y - 30);
         }
 
         function drawBullet(x, y) {
@@ -178,15 +204,24 @@
         }
 
         function updateGame() {
-            if (!isGameReady) return; // Fix 2: Wait for initial state
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (Object.keys(players).length === 0 || !players[playerId]) {
+                errorMessage.classList.remove('hidden');
+                console.log('No players to render:', { players, playerId });
+                return;
+            }
+            errorMessage.classList.add('hidden');
             for (const id in players) {
                 const player = players[id];
                 if (player && !player.disconnected) {
-                    drawSpaceship(player.x, player.y, player.angle, id === playerId ? '#3B82F6' : '#EF4444');
-                    ctx.fillStyle = 'white';
-                    ctx.font = '14px Orbitron';
-                    ctx.fillText(`${player.name}: ${player.health} HP`, player.x - 40, player.y - 30);
+                    drawSpaceship(
+                        player.x,
+                        player.y,
+                        player.angle,
+                        id === playerId ? '#3B82F6' : '#EF4444',
+                        player.name,
+                        player.health
+                    );
                 }
             }
             bullets.forEach(bullet => drawBullet(bullet.x, bullet.y));
@@ -195,22 +230,24 @@
 
         socket.on('connect', () => {
             console.log('Connected to backend:', socket.id);
-            if (!playerId) {
+            if (!playerId || playerId !== socket.id) {
                 playerId = socket.id;
                 localStorage.setItem('playerId', socket.id);
             }
+            socket.emit('rejoinGame', { roomId, playerId }); // Fix 6: Attempt to rejoin
         });
 
         socket.on('connect_error', (error) => {
             console.error('Connection error:', error);
-            alert('無法連接到伺服器，請檢查後端服務');
+            errorMessage.textContent = '無法連接到伺服器，請檢查後端服務';
+            errorMessage.classList.remove('hidden');
         });
 
         socket.on('gameStateUpdate', (state) => {
             console.log('Received gameStateUpdate:', state);
             players = state.players || {};
             bullets = state.bullets || [];
-            isGameReady = true; // Fix 2: Mark game as ready
+            isGameReady = true;
             updateGame();
         });
 
@@ -238,7 +275,8 @@
         });
 
         // Mouse aiming
-        let mouseX = 0, mouseY = 0;
+        let mouseX = canvas.width / 2;
+        let mouseY = canvas.height / 2;
         canvas.addEventListener('mousemove', (e) => {
             const rect = canvas.getBoundingClientRect();
             mouseX = e.clientX - rect.left;
@@ -277,6 +315,8 @@
                 if (data.direction.y === 'down') dy = speed;
                 players[playerId].x += dx;
                 players[playerId].y += dy;
+                players[playerId].x = Math.max(0, Math.min(canvas.width, players[playerId].x));
+                players[playerId].y = Math.max(0, Math.min(canvas.height, players[playerId].y));
                 socket.emit('playerMove', {
                     x: players[playerId].x,
                     y: players[playerId].y,
@@ -326,11 +366,20 @@
             requestAnimationFrame(gameLoop);
         }
 
+        // Fix 2: Timeout for game state
+        setTimeout(() => {
+            if (!isGameReady) {
+                errorMessage.textContent = '無法載入遊戲資料，請重新整理';
+                errorMessage.classList.remove('hidden');
+                console.error('Game state not received after 5 seconds');
+            }
+        }, 5000);
+
         createStars();
         setTimeout(() => {
             console.log('Starting game loop after delay');
             gameLoop();
-        }, 1000); // Fix 2: Delay to ensure initial state
+        }, 1000);
     </script>
 </body>
 </html>
