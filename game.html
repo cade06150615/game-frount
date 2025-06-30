@@ -6,7 +6,7 @@
     <title>太空射擊對決</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-    <script src="https://unpkg.com/nipplejs@0.10.0/dist/nipplejs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/nipplejs@0.10.0/dist/nipplejs.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
 
@@ -111,6 +111,8 @@
             background: rgba(0, 0, 0, 0.7);
             padding: 10px;
             z-index: 20;
+            max-width: 300px;
+            overflow-y: auto;
         }
     </style>
 </head>
@@ -176,27 +178,34 @@
         resizeCanvas();
         window.addEventListener('resize', resizeCanvas);
 
-        const socket = io('https://game-backed-3.onrender.com', {
-            transports: ['websocket'],
-            reconnectionAttempts: 5,
-            reconnectionDelay: 1000
-        });
-
-        let playerId = localStorage.getItem('playerId');
+        // Clear localStorage to avoid stale playerId
+        localStorage.removeItem('playerId');
+        let playerId = null;
         let roomId = localStorage.getItem('roomId');
         let playerName = localStorage.getItem('playerName');
         let players = {};
         let bullets = [];
         let isGameReady = false;
+        let isNippleJsLoaded = typeof nipplejs !== 'undefined';
+
+        const socket = io('https://game-backed-3.onrender.com', {
+            transports: ['websocket'],
+            reconnectionAttempts: 10,
+            reconnectionDelay: 1000
+        });
 
         function updateDebugOverlay() {
+            const bulletInfo = bullets.map(b => `Bullet ${b.id}: (${b.x.toFixed(2)}, ${b.y.toFixed(2)})`).join('<br>');
             debugOverlay.innerHTML = `
                 Player ID: ${playerId || 'N/A'}<br>
                 Socket ID: ${socket.id || 'N/A'}<br>
                 Room ID: ${roomId || 'N/A'}<br>
                 Players: ${Object.keys(players).length}<br>
+                Bullets: ${bullets.length}<br>
                 Game Ready: ${isGameReady}<br>
-                Connected: ${socket.connected}
+                Connected: ${socket.connected}<br>
+                Nipple.js Loaded: ${isNippleJsLoaded}<br>
+                ${bulletInfo ? '<br>Bullets:<br>' + bulletInfo : ''}
             `;
         }
 
@@ -220,18 +229,18 @@
             console.log(`Drawing spaceship: ${name} at (${x}, ${y}), angle: ${angle}, health: ${health}`);
         }
 
-        function drawBullet(x, y) {
+        function drawBullet(x, y, id) {
             ctx.beginPath();
-            ctx.arc(x, y, 3, 0, Math.PI * 2);
+            ctx.arc(x, y, 7, 0, Math.PI * 2); // Larger for visibility
             ctx.fillStyle = '#FFD700';
             ctx.fill();
             ctx.closePath();
-            console.log(`Drawing bullet at (${x}, ${y})`);
+            console.log(`Drawing bullet ${id} at (${x}, ${y})`);
         }
 
         function updateGame() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            if (!isGameReady || Object.keys(players).length === 0 || !players[playerId]) {
+            if (!isGameReady || Object.keys(players).length === 0) {
                 errorMessage.textContent = '等待遊戲資料或玩家資料缺失';
                 errorMessage.classList.remove('hidden');
                 console.log('Cannot render: ', { isGameReady, playerCount: Object.keys(players).length, hasPlayer: !!players[playerId] });
@@ -251,7 +260,11 @@
                     );
                 }
             }
-            bullets.forEach(bullet => drawBullet(bullet.x, bullet.y));
+            if (bullets.length > 0) {
+                bullets.forEach(bullet => drawBullet(bullet.x, bullet.y, bullet.id));
+            } else {
+                console.log('No bullets to render');
+            }
             console.log('Game updated:', { players, bullets, playerId });
         }
 
@@ -326,36 +339,51 @@
                 };
                 socket.emit('playerShoot', bullet);
                 console.log('Bullet fired:', bullet);
+            } else {
+                console.log('Cannot shoot: player not ready or disconnected', { playerId, players });
             }
         });
 
         // Touch controls
-        const joystick = nipplejs.create({
-            zone: document.getElementById('joystick'),
-            mode: 'static',
-            position: { left: '50%', top: '50%' },
-            color: '#3B82F6'
-        });
-
-        joystick.on('move', (evt, data) => {
-            if (data.direction && players[playerId] && !players[playerId].disconnected) {
-                const speed = 5;
-                let dx = 0, dy = 0;
-                if (data.direction.x === 'left') dx = -speed;
-                if (data.direction.x === 'right') dx = speed;
-                if (data.direction.y === 'up') dy = -speed;
-                if (data.direction.y === 'down') dy = speed;
-                players[playerId].x += dx;
-                players[playerId].y += dy;
-                players[playerId].x = Math.max(0, Math.min(canvas.width, players[playerId].x));
-                players[playerId].y = Math.max(0, Math.min(canvas.height, players[playerId].y));
-                socket.emit('playerMove', {
-                    x: players[playerId].x,
-                    y: players[playerId].y,
-                    angle: players[playerId].angle
+        let joystick = null;
+        if (isNippleJsLoaded) {
+            try {
+                joystick = nipplejs.create({
+                    zone: document.getElementById('joystick'),
+                    mode: 'static',
+                    position: { left: '50%', top: '50%' },
+                    color: '#3B82F6'
                 });
+                console.log('Joystick initialized');
+            } catch (e) {
+                console.error('Failed to initialize joystick:', e);
+                isNippleJsLoaded = false;
             }
-        });
+        } else {
+            console.warn('Nipple.js not loaded, skipping joystick initialization');
+        }
+
+        if (joystick) {
+            joystick.on('move', (evt, data) => {
+                if (data.direction && players[playerId] && !players[playerId].disconnected) {
+                    const speed = 5;
+                    let dx = 0, dy = 0;
+                    if (data.direction.x === 'left') dx = -speed;
+                    if (data.direction.x === 'right') dx = speed;
+                    if (data.direction.y === 'up') dy = -speed;
+                    if (data.direction.y === 'down') dy = speed;
+                    players[playerId].x += dx;
+                    players[playerId].y += dy;
+                    players[playerId].x = Math.max(0, Math.min(canvas.width, players[playerId].x));
+                    players[playerId].y = Math.max(0, Math.min(canvas.height, players[playerId].y));
+                    socket.emit('playerMove', {
+                        x: players[playerId].x,
+                        y: players[playerId].y,
+                        angle: players[playerId].angle
+                    });
+                }
+            });
+        }
 
         document.getElementById('shootButton').addEventListener('touchstart', () => {
             if (players[playerId] && !players[playerId].disconnected) {
@@ -368,6 +396,8 @@
                 };
                 socket.emit('playerShoot', bullet);
                 console.log('Bullet fired:', bullet);
+            } else {
+                console.log('Cannot shoot: player not ready or disconnected', { playerId, players });
             }
         });
 
@@ -379,8 +409,8 @@
                     let dx = 0, dy = 0;
                     if (keys['w'] || keys['ArrowUp']) dy -= speed;
                     if (keys['s'] || keys['ArrowDown']) dy += speed;
-                    if (keys['a'] || keys['ArrowLeft']) dx -= speed;
-                    if (keys['d'] || keys['ArrowRight']) dx += speed;
+                    if (keys['a'] || keys['ArrowLeft']) dx = -speed;
+                    if (keys['d'] || keys['ArrowRight']) dx = speed;
                     players[playerId].x += dx;
                     players[playerId].y += dy;
                     players[playerId].x = Math.max(0, Math.min(canvas.width, players[playerId].x));
