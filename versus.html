@@ -293,8 +293,7 @@
 
         socket.on('connect', () => {
             console.log('Connected to backend:', socket.id);
-            localStorage.setItem('playerId', socket.id); // Fix 1: Store playerId
-            document.getElementById('loading').textContent = '連線成功，等待配對...';
+            localStorage.setItem('playerId', socket.id);
         });
 
         socket.on('connect_error', (error) => {
@@ -304,6 +303,8 @@
 
         socket.on('matchFound', (data) => {
             console.log('Match found:', data);
+            localStorage.setItem('playerId', data.playerId); // Fix 1: Update playerId
+            localStorage.setItem('roomId', data.roomId);
             document.getElementById('loading').classList.add('hidden');
             document.getElementById('vsContainer').classList.add('active');
             document.getElementById('playerCard').classList.add('active');
@@ -311,11 +312,11 @@
             const players = Object.values(data.players);
             document.getElementById('playerName').textContent = players[0].name;
             document.getElementById('opponentName').textContent = players[1]?.name || '等待對手...';
-            localStorage.setItem('roomId', data.roomId);
         });
 
-        socket.on('startGame', () => {
-            console.log('Starting game, redirecting to game.html');
+        socket.on('startGame', (data) => {
+            console.log('Starting game, playerId:', data.playerId);
+            localStorage.setItem('playerId', data.playerId); // Fix 1: Update playerId
             document.body.style.transition = 'opacity 0.5s';
             document.body.style.opacity = '0';
             setTimeout(() => {
