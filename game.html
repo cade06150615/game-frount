@@ -101,6 +101,17 @@
             text-align: center;
             z-index: 15;
         }
+
+        .debug-overlay {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            color: white;
+            font-size: 12px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px;
+            z-index: 20;
+        }
     </style>
 </head>
 <body>
@@ -112,6 +123,7 @@
     <div class="joystick-container" id="joystick"></div>
     <div class="shoot-button" id="shootButton">射擊</div>
     <div id="errorMessage" class="error-message hidden">等待遊戲資料...</div>
+    <div id="debugOverlay" class="debug-overlay">連接中...</div>
 
     <div id="gameOverModal" class="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 hidden">
         <div class="game-over-modal rounded-lg p-6 sm:p-8 max-w-md w-full mx-4 relative">
@@ -154,11 +166,12 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const errorMessage = document.getElementById('errorMessage');
+        const debugOverlay = document.getElementById('debugOverlay');
 
-        // Fix 5: Set canvas size dynamically
         function resizeCanvas() {
             canvas.width = Math.min(window.innerWidth, 800);
             canvas.height = Math.min(window.innerHeight, 600);
+            console.log(`Canvas resized: ${canvas.width}x${canvas.height}`);
         }
         resizeCanvas();
         window.addEventListener('resize', resizeCanvas);
@@ -175,6 +188,17 @@
         let players = {};
         let bullets = [];
         let isGameReady = false;
+
+        function updateDebugOverlay() {
+            debugOverlay.innerHTML = `
+                Player ID: ${playerId || 'N/A'}<br>
+                Socket ID: ${socket.id || 'N/A'}<br>
+                Room ID: ${roomId || 'N/A'}<br>
+                Players: ${Object.keys(players).length}<br>
+                Game Ready: ${isGameReady}<br>
+                Connected: ${socket.connected}
+            `;
+        }
 
         function drawSpaceship(x, y, angle, color, name, health) {
             ctx.save();
@@ -193,6 +217,7 @@
             ctx.fillStyle = 'white';
             ctx.font = '14px Orbitron';
             ctx.fillText(`${name}: ${health} HP`, x - 40, y - 30);
+            console.log(`Drawing spaceship: ${name} at (${x}, ${y}), angle: ${angle}, health: ${health}`);
         }
 
         function drawBullet(x, y) {
@@ -201,13 +226,15 @@
             ctx.fillStyle = '#FFD700';
             ctx.fill();
             ctx.closePath();
+            console.log(`Drawing bullet at (${x}, ${y})`);
         }
 
         function updateGame() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            if (Object.keys(players).length === 0 || !players[playerId]) {
+            if (!isGameReady || Object.keys(players).length === 0 || !players[playerId]) {
+                errorMessage.textContent = '等待遊戲資料或玩家資料缺失';
                 errorMessage.classList.remove('hidden');
-                console.log('No players to render:', { players, playerId });
+                console.log('Cannot render: ', { isGameReady, playerCount: Object.keys(players).length, hasPlayer: !!players[playerId] });
                 return;
             }
             errorMessage.classList.add('hidden');
@@ -230,25 +257,30 @@
 
         socket.on('connect', () => {
             console.log('Connected to backend:', socket.id);
-            if (!playerId || playerId !== socket.id) {
-                playerId = socket.id;
-                localStorage.setItem('playerId', socket.id);
-            }
-            socket.emit('rejoinGame', { roomId, playerId }); // Fix 6: Attempt to rejoin
+            playerId = socket.id;
+            localStorage.setItem('playerId', socket.id);
+            socket.emit('rejoinGame', { roomId, playerId });
+            updateDebugOverlay();
         });
 
         socket.on('connect_error', (error) => {
             console.error('Connection error:', error);
             errorMessage.textContent = '無法連接到伺服器，請檢查後端服務';
             errorMessage.classList.remove('hidden');
+            updateDebugOverlay();
         });
 
         socket.on('gameStateUpdate', (state) => {
             console.log('Received gameStateUpdate:', state);
+            if (state.playerId) {
+                playerId = state.playerId;
+                localStorage.setItem('playerId', state.playerId);
+            }
             players = state.players || {};
             bullets = state.bullets || [];
             isGameReady = true;
             updateGame();
+            updateDebugOverlay();
         });
 
         socket.on('gameOver', (data) => {
@@ -363,10 +395,10 @@
                 }
                 updateGame();
             }
+            updateDebugOverlay();
             requestAnimationFrame(gameLoop);
         }
 
-        // Fix 2: Timeout for game state
         setTimeout(() => {
             if (!isGameReady) {
                 errorMessage.textContent = '無法載入遊戲資料，請重新整理';
