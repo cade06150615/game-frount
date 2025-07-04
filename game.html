@@ -304,7 +304,7 @@
         let mouseX = canvas.width / 2;
         let mouseY = canvas.height / 2;
         canvas.addEventListener('mousemove', (e) => {
-            const rect = canvas.getBoundingClientRect();
+            const rect = canvas.getBoundingRect();
             mouseX = e.clientX - rect.left;
             mouseY = e.clientY - rect.top;
         });
