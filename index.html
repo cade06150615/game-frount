@@ -2,15 +2,80 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>🐵 猴子開箱遊戲</title>
+  <title>猴子開箱遊戲</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <script defer src="script.js"></script>
-  <!-- ...樣式省略，可用前面提供的版本... -->
+  <style>
+    body {
+      background: #111;
+      color: #eee;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 0; padding: 20px;
+    }
+    h1 { margin-bottom: 15px; }
+    canvas {
+      background: #222;
+      border-radius: 12px;
+      margin: 0 auto 15px;
+      display: block;
+    }
+    button {
+      background: #4caf50;
+      border: none;
+      padding: 12px 30px;
+      color: white;
+      font-size: 20px;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    button:disabled {
+      background: #555;
+      cursor: not-allowed;
+    }
+    #result, #timer {
+      margin: 12px 0;
+      font-weight: bold;
+      font-size: 18px;
+    }
+    #backpack, #market {
+      margin: 20px auto;
+      max-width: 600px;
+      background: #222;
+      border-radius: 12px;
+      padding: 15px;
+      min-height: 60px;
+    }
+    .item {
+      display: inline-block;
+      padding: 6px 10px;
+      margin: 6px;
+      border-radius: 8px;
+      cursor: pointer;
+      user-select: none;
+      font-weight: bold;
+      color: #222;
+    }
+    .common { background: #aaa; }
+    .rare { background: #3498db; color: white; }
+    .epic { background: #9b59b6; color: white; }
+    .legendary { background: gold; color: black; }
+    input.price {
+      width: 60px;
+      margin-left: 8px;
+      border-radius: 5px;
+      border: none;
+      padding: 2px 5px;
+      font-size: 14px;
+    }
+  </style>
 </head>
 <body>
-  <h1>猴子開箱遊戲</h1>
+
+  <h1>🐵 猴子開箱遊戲</h1>
+
   <canvas id="monkeyCanvas" width="200" height="200"></canvas>
   <button id="openBtn">開箱！</button>
+
   <div id="result"></div>
   <div id="timer"></div>
 
@@ -19,5 +84,7 @@
 
   <h2>市場</h2>
   <div id="market"></div>
+
+  <script src="script.js"></script>
 </body>
 </html>
