@@ -1,90 +1,37 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="zh-TW">
 <head>
   <meta charset="UTF-8" />
-  <title>猴子開箱遊戲</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>猴子開箱 AI 超大箱子版本</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    body {
-      background: #111;
-      color: #eee;
-      font-family: Arial, sans-serif;
-      text-align: center;
-      margin: 0; padding: 20px;
-    }
-    h1 { margin-bottom: 15px; }
-    canvas {
-      background: #222;
-      border-radius: 12px;
-      margin: 0 auto 15px;
-      display: block;
-    }
-    button {
-      background: #4caf50;
-      border: none;
-      padding: 12px 30px;
-      color: white;
-      font-size: 20px;
-      border-radius: 10px;
-      cursor: pointer;
-    }
-    button:disabled {
-      background: #555;
-      cursor: not-allowed;
-    }
-    #result, #timer {
-      margin: 12px 0;
-      font-weight: bold;
-      font-size: 18px;
-    }
-    #backpack, #market {
-      margin: 20px auto;
-      max-width: 600px;
-      background: #222;
-      border-radius: 12px;
-      padding: 15px;
-      min-height: 60px;
-    }
-    .item {
-      display: inline-block;
-      padding: 6px 10px;
-      margin: 6px;
-      border-radius: 8px;
-      cursor: pointer;
-      user-select: none;
-      font-weight: bold;
-      color: #222;
-    }
-    .common { background: #aaa; }
-    .rare { background: #3498db; color: white; }
-    .epic { background: #9b59b6; color: white; }
-    .legendary { background: gold; color: black; }
-    input.price {
-      width: 60px;
-      margin-left: 8px;
-      border-radius: 5px;
-      border: none;
-      padding: 2px 5px;
-      font-size: 14px;
-    }
+    body { background: #f0f9ff; }
   </style>
 </head>
-<body>
+<body class="p-6 font-sans">
+  <h1 class="text-3xl font-bold mb-4 text-center">猴子開箱 AI 系統（十億箱版本）</h1>
 
-  <h1>🐵 猴子開箱遊戲</h1>
+  <div class="max-w-3xl mx-auto bg-white p-6 rounded shadow">
+    <!-- 顯示可選箱子 -->
+    <div id="box-selection" class="grid grid-cols-5 gap-4 mb-6"></div>
 
-  <canvas id="monkeyCanvas" width="200" height="200"></canvas>
-  <button id="openBtn">開箱！</button>
+    <button id="open-box-btn" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 mb-6">猴子開箱一次</button>
 
-  <div id="result"></div>
-  <div id="timer"></div>
+    <div id="result" class="mb-6 text-center text-xl font-semibold"></div>
 
-  <h2>背包</h2>
-  <div id="backpack"></div>
+    <canvas id="qChart" height="150"></canvas>
+    <canvas id="countChart" height="150" class="mt-8"></canvas>
 
-  <h2>市場</h2>
-  <div id="market"></div>
+    <div class="mt-6 flex justify-center gap-4">
+      <button id="save-btn" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">儲存學習進度</button>
+      <button id="load-btn" class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">載入學習進度</button>
+      <button id="reset-btn" class="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">重置學習資料</button>
+    </div>
+  </div>
 
-  <script src="script.js"></script>
+  <script src="monkey.js"></script>
+  <script src="ui.js"></script>
 </body>
 </html>
